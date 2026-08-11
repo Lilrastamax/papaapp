@@ -622,41 +622,39 @@ function renderMonthCalendar() {
   </div>`;
 }
 
+
 function showCustodyModal(dateStr, currentType) {
+  const isCancelled = currentType === 'cancelled';
+  const who = currentType === 'papa' ? 'Papa' : (currentType === 'cancelled' ? 'Maman' : 'Maman');
   showModal('Journée ' + fmtLong(dateStr), [
-    { id: 'type', l: 'Qui garde ?', t: 'sel', opts: ['Papa', 'Maman (dimanche)', 'Maman (extra)', 'Annulé'] },
+    { id: 'who', l: 'Qui garde ?', t: 'sel', opts: ['Papa', 'Maman'] },
+    { id: 'cancelled', l: 'Annulé ?', t: 'sel', opts: ['Non', 'Oui'] },
     { id: 'note', l: 'Note', p: '' }
   ], d => {
-    // Handle changing custody type
-    if (d.type === 'Papa') {
-      // Remove any overrides
-      DB.sundayOverrides = (DB.sundayOverrides || []).filter(o => o.date !== dateStr);
-      DB.extraVisits = (DB.extraVisits || []).filter(v => v.date !== dateStr);
-    } else if (d.type === 'Annulé') {
-      const existing = (DB.sundayOverrides || []).find(o => o.date === dateStr);
-      if (existing) { existing.cancelled = true; existing.note = d.note || existing.note; }
-      else {
-        DB.sundayOverrides.push({ date: dateStr, time: '', note: d.note || '', cancelled: true });
-      }
-      DB.extraVisits = (DB.extraVisits || []).filter(v => v.date !== dateStr);
-    } else if (d.type === 'Maman (extra)') {
-      DB.sundayOverrides = (DB.sundayOverrides || []).filter(o => o.date !== dateStr);
-      const existing = (DB.extraVisits || []).find(v => v.date === dateStr);
-      if (existing) { existing.cancelled = false; existing.note = d.note || existing.note; }
-      else { DB.extraVisits.push({ _id: uid(), date: dateStr, time: '', note: d.note || '', cancelled: false }); }
-    } else if (d.type === 'Maman (dimanche)') {
-      DB.extraVisits = (DB.extraVisits || []).filter(v => v.date !== dateStr);
-      const existing = (DB.sundayOverrides || []).find(o => o.date === dateStr);
-      if (existing) { existing.cancelled = false; existing.note = d.note || existing.note; }
-      else { DB.sundayOverrides.push({ date: dateStr, time: '', note: d.note || '', cancelled: false }); }
+    const isMom = d.who === 'Maman';
+    const isCanc = d.cancelled === 'Oui';
+    // Remove existing overrides for this date
+    DB.sundayOverrides = (DB.sundayOverrides || []).filter(o => o.date !== dateStr);
+    DB.extraVisits = (DB.extraVisits || []).filter(v => v.date !== dateStr);
+
+    if (isMom && isCanc) {
+      // Maman prévu mais annulé
+      DB.sundayOverrides.push({ date: dateStr, time: '', note: d.note || '', cancelled: true });
+    } else if (isMom) {
+      // Maman prévu et maintenu
+      DB.sundayOverrides.push({ date: dateStr, time: '', note: d.note || '', cancelled: false });
     }
+    // Papa: nothing to store (default)
+
     saveDB(); cloudPushSettings(); render(); toast('Journée mise à jour');
   });
   setTimeout(() => {
-    const map = { papa: 'Papa', maman: 'Maman (dimanche)', extra: 'Maman (extra)', cancelled: 'Annulé' };
-    $('#fm-type').value = map[currentType] || 'Papa';
+    $('#fm-who').value = who;
+    $('#fm-cancelled').value = isCancelled ? 'Oui' : 'Non';
   }, 100);
 }
+window.showCustodyModal = showCustodyModal;
+
 window.showCustodyModal = showCustodyModal;
 
 function renderMaison() {
