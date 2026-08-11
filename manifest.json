@@ -2,7 +2,7 @@
   "name": "PapaApp",
   "short_name": "PapaApp",
   "description": "Le compagnon des papas solos",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#F7F8FC",
   "theme_color": "#4A90D9",
