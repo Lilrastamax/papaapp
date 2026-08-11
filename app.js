@@ -625,47 +625,47 @@ function renderMonthCalendar() {
     </div>
     ${html}
     <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--text-light);justify-content:center;">
-      <span>🔵 Papa</span><span>🔴 Maman</span><span>🟠 Extra</span><span>⚫ Annulé</span>
+      <span>🔴 Chez Maman</span><span>⚫ Annulé</span>
     </div>
   </div>`;
 }
 
 
 
+
 function showCustodyModal(dateStr, currentType) {
   const isCancelled = currentType === 'cancelled';
-  const who = (currentType === 'papa') ? 'Papa' : 'Maman';
+  const isMaman = currentType === 'maman' || currentType === 'extra' || currentType === 'cancelled';
   const existingOv = (DB.sundayOverrides || []).find(o => o.date === dateStr);
   const savedTime = existingOv ? (existingOv.time || DB.settings.firstSundayNote || '') : (DB.settings.firstSundayNote || '');
   const savedNote = existingOv ? (existingOv.note || '') : '';
 
-  showModal('Journée ' + fmtLong(dateStr), [
-    { id: 'who', l: 'Qui garde ?', t: 'sel', opts: ['Papa', 'Maman'] },
+  showModal(fmtLong(dateStr), [
+    { id: 'maman', l: 'Chez Maman ?', t: 'sel', opts: ['Non', 'Oui'] },
     { id: 'cancelled', l: 'Annulé ?', t: 'sel', opts: ['Non', 'Oui'] },
     { id: 'note', l: 'Note', p: '' }
   ], function(d) {
-    var isMom = d.who === 'Maman';
+    var isMom = d.maman === 'Oui';
     var isCanc = d.cancelled === 'Oui';
-    // Nettoyer les entrées existantes pour cette date
     DB.sundayOverrides = (DB.sundayOverrides || []).filter(function(o) { return o.date !== dateStr; });
     DB.extraVisits = (DB.extraVisits || []).filter(function(v) { return v.date !== dateStr; });
-    // Ajouter la nouvelle entrée si Maman
     if (isMom) {
       DB.sundayOverrides.push({ date: dateStr, time: savedTime, note: d.note || '', cancelled: isCanc });
     }
-    saveDB(); cloudPushSettings(); navigate('agenda'); toast('Journée mise à jour');
+    saveDB(); cloudPushSettings(); navigate('agenda'); toast(isMom ? (isCanc ? 'Annulé' : 'Chez Maman') : 'Chez Papa');
   });
 
-  // Pré-remplir les valeurs
   setTimeout(function() {
-    var elWho = document.getElementById('fm-who');
-    var elCanc = document.getElementById('fm-cancelled');
-    var elNote = document.getElementById('fm-note');
-    if (elWho) elWho.value = who;
-    if (elCanc) elCanc.value = isCancelled ? 'Oui' : 'Non';
-    if (elNote) elNote.value = savedNote;
+    var elM = document.getElementById('fm-maman');
+    var elC = document.getElementById('fm-cancelled');
+    var elN = document.getElementById('fm-note');
+    if (elM) elM.value = isMaman ? 'Oui' : 'Non';
+    if (elC) elC.value = isCancelled ? 'Oui' : 'Non';
+    if (elN) elN.value = savedNote;
   }, 150);
 }
+window.showCustodyModal = showCustodyModal;
+
 window.showCustodyModal = showCustodyModal;
 
 window.showCustodyModal = showCustodyModal;
