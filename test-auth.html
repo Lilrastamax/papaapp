@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+<h2>Test Auth Supabase</h2>
+<input id="email" type="email" placeholder="Email"><br>
+<input id="pass" type="password" placeholder="Mot de passe"><br>
+<button onclick="signin()">Se connecter</button>
+<button onclick="signup()">Créer compte</button>
+<pre id="out"></pre>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const sb = supabase.createClient('https://uvrazdcpymexbmlctdlh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2cmF6ZGNweW1leGJtbGN0ZGxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyMjM3NjQsImV4cCI6MjEwMTc5OTc2NH0.glIiIF_qXgJwXHFJJacbeHhNeaDYk2cQaP-a8YZPSP0', {auth:{persistSession:true,autoRefreshToken:true}});
+
+async function signin(){
+  const o = document.getElementById('out');
+  o.textContent = 'Tentative...';
+  const { data, error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('pass').value });
+  o.textContent = error ? 'ERREUR: '+error.message+' (status:'+error.status+')' : 'SUCCES: '+JSON.stringify(data.user?.email);
+}
+
+async function signup(){
+  const o = document.getElementById('out');
+  o.textContent = 'Tentative...';
+  const { data, error } = await sb.auth.signUp({ email: document.getElementById('email').value, password: document.getElementById('pass').value });
+  o.textContent = error ? 'ERREUR: '+error.message+' (status:'+error.status+')' : 'SUCCES: '+JSON.stringify(data.user?.email);
+}
+</script>
+</body>
+</html>

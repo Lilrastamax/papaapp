@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+<h3>Test API directe</h3>
+<input id="e" placeholder="Email"><br>
+<input id="p" type="password" placeholder="Mot de passe"><br>
+<button onclick="go()">Tester</button>
+<pre id="r"></pre>
+<script>
+async function go() {
+  const o = document.getElementById('r');
+  o.textContent = 'Appel API...';
+  try {
+    const res = await fetch('https://uvrazdcpymexbmlctdlh.supabase.co/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2cmF6ZGNweW1leGJtbGN0ZGxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyMjM3NjQsImV4cCI6MjEwMTc5OTc2NH0.glIiIF_qXgJwXHFJJacbeHhNeaDYk2cQaP-a8YZPSP0'
+      },
+      body: JSON.stringify({ email: document.getElementById('e').value, password: document.getElementById('p').value })
+    });
+    const txt = await res.text();
+    o.textContent = 'Status: ' + res.status + '\n' + txt;
+  } catch(e) {
+    o.textContent = 'Erreur réseau: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#5B6FE3">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="PapaApp">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="stylesheet" href="/app.css">
+<title>PapaApp</title>
+</head>
+<body>
+<div id="app">
+
+  <div class="app-header">
+    <div class="header-left">
+      <div class="avatar" id="headerAvatar">P</div>
+      <div class="header-info"><h3 id="headerTitle">PapaApp</h3><span id="headerSub"></span></div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn-lock" id="btnDark" title="Mode sombre">🌓</button>
+      <button class="btn-lock" id="btnEmergency" title="Urgence">🆘</button>
+      <button class="btn-lock" id="btnSettings" title="Paramètres">⚙️</button>
+      <button class="btn-lock" id="btnLock" title="Verrouiller">🔒</button>
+    </div>
+  </div>
+
+  <div class="screen-container" id="screenContainer"></div>
+
+  <!-- Floating Action Button -->
+  <div class="fab" id="fab">
+    <span>+</span>
+  </div>
+  <div class="fab-menu" id="fabMenu"></div>
+
+  <div class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" data-screen="home"><span class="nav-emoji">🏠</span> Accueil</button>
+    <button class="nav-item" data-screen="health"><span class="nav-emoji">❤️</span> Santé</button>
+    <button class="nav-item" data-screen="agenda"><span class="nav-emoji">🏛️</span> Garde</button>
+    <button class="nav-item" data-screen="school"><span class="nav-emoji">🏫</span> École</button>
+    <button class="nav-item" data-screen="activites"><span class="nav-emoji">🎯</span> Activités</button>
+    <button class="nav-item" data-screen="maison"><span class="nav-emoji">🏡</span> Maison</button>
+  </div>
+
+</div>
+</body>
+<script src="/app.js"></script>
+</html>
