@@ -462,7 +462,18 @@ function renderHealth() {
 // ----- AGENDA -----
 function renderAgenda() {
   const s = DB.settings, sundays = getNextSundays();
+  const pastCount = (() => { const fd = s.firstSundayDate; if (!fd) return 0; const ref = new Date(fd), now = new Date(); now.setHours(0, 0, 0, 0); let d = new Date(ref), count = 0; while (d < now) { if (d.getDay() === 0) count++; d.setDate(d.getDate() + (s.sundayInterval || 14)); } return count; })();
+  const cancelledS = (DB.sundayOverrides || []).filter(o => o.cancelled).length;
+  const cancelledX = (DB.extraVisits || []).filter(v => v.cancelled).length;
+  const extraCount = (DB.extraVisits || []).length;
   return `<div class="agenda-grid">
+    <div class="card" style="grid-column:1/-1;"><div class="card-title">📊 En chiffres</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center;">
+        <div><div style="font-size:18px;font-weight:800;">${pastCount}</div><div style="font-size:10px;color:var(--text-light);">Dimanches</div></div>
+        <div><div style="font-size:18px;font-weight:800;color:var(--danger);">${cancelledS + cancelledX}</div><div style="font-size:10px;color:var(--text-light);">Annulés</div></div>
+        <div><div style="font-size:18px;font-weight:800;">${extraCount}</div><div style="font-size:10px;color:var(--text-light);">Jours supp.</div></div>
+        <div><div style="font-size:18px;font-weight:800;color:var(--accent);">${pastCount + extraCount - cancelledS - cancelledX}</div><div style="font-size:10px;color:var(--text-light);">Effectués</div></div>
+      </div></div>
     <div class="card"><div class="card-title">👨‍👦 Garde</div><div style="background:var(--card-alt);border-radius:12px;padding:12px;text-align:center;margin-bottom:8px;"><div style="font-size:12px;color:var(--text-light);">Garde complète</div><div style="font-size:18px;font-weight:800;">Papa</div></div><div style="background:var(--accent-light);border-radius:12px;padding:12px;text-align:center;"><div style="font-size:12px;color:var(--text-light);">Droit de visite</div><div style="font-size:16px;font-weight:700;color:var(--accent);">Maman</div><div style="font-size:11px;color:var(--accent);">${s.firstSundayDate ? `1 dimanche sur ${s.sundayInterval / 7}` : 'Pas configuré'}</div></div></div>
     <div class="card"><div class="card-title">🗓 Prochains dimanches</div>${sundays.length ? sundays.map((d, i) => { const ds = dateISO(d); const ov = (DB.sundayOverrides || []).find(o => o.date === ds) || {}; const time = ov.time || s.firstSundayNote || '9h-18h'; const cancelled = ov.cancelled; return `<div class="doc-item" onclick="showSundayOverrideModal('${ds}')" style="cursor:pointer;"><div class="doc-icon">${cancelled ? '❌' : '👩‍👦'}</div><div class="doc-info"><div class="name">${fmtLong(d)}${cancelled ? ' <span style="color:var(--danger);font-size:11px;">(annulé' + (ov.note ? ': ' + ov.note : '') + ')</span>' : ''}</div><div class="meta">${cancelled ? '' : (time || '')}${!cancelled && ov.note ? ' · ' + ov.note : ''}</div></div><span class="badge badge-${i === 0 && !cancelled ? 'warn' : 'ok'}">${daysUntil(d)}j</span></div>`; }).join('') : '<div class="empty"><div class="sub">Configure dans ⚙️ Paramètres</div></div>'}</div>
     <div class="card"><div class="card-title">🎒 Checklist départ</div>${DB.checklists.sunday.map(i => `<div class="cl-item"><input type="checkbox" id="sun-${i.id}" ${i.checked ? 'checked' : ''} data-cl="sunday" data-id="${i.id}"><label for="sun-${i.id}">${i.label}</label></div>`).join('')}</div>
