@@ -17,7 +17,7 @@ let DB = null;
 let lockTimer = null;
 
 // ========== SERVICE WORKER ==========
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/papaapp/sw.js');
+// Pas de service worker — l'appli fonctionne sans
 
 // ========== UTILITAIRES ==========
 const $ = (s, c = document) => c.querySelector(s);
