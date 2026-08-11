@@ -463,16 +463,21 @@ function renderHealth() {
 function renderAgenda() {
   const s = DB.settings, sundays = getNextSundays();
   const pastCount = (() => { const fd = s.firstSundayDate; if (!fd) return 0; const ref = new Date(fd), now = new Date(); now.setHours(0, 0, 0, 0); let d = new Date(ref), count = 0; while (d < now) { if (d.getDay() === 0) count++; d.setDate(d.getDate() + (s.sundayInterval || 14)); } return count; })();
-  const cancelledS = (DB.sundayOverrides || []).filter(o => o.cancelled).length;
-  const cancelledX = (DB.extraVisits || []).filter(v => v.cancelled).length;
-  const extraCount = (DB.extraVisits || []).length;
+  // Build list of automatic Sunday dates to distinguish them from manual extras
+  const autoSundays = (() => { const fd = s.firstSundayDate; if (!fd) return []; const ref = new Date(fd), now = new Date(); now.setHours(0,0,0,0); let d = new Date(ref); const list=[]; while (d < now) { if (d.getDay()===0) list.push(dateISO(d)); d.setDate(d.getDate()+(s.sundayInterval||14)); } return list; })();
+  const overs = DB.sundayOverrides || [];
+  const cancelledAuto = overs.filter(o => autoSundays.includes(o.date) && o.cancelled).length;
+  const cancelledExtra = overs.filter(o => !autoSundays.includes(o.date) && o.cancelled).length + (DB.extraVisits||[]).filter(v=>v.cancelled).length;
+  const totalCancelled = cancelledAuto + cancelledExtra;
+  const extraDays = overs.filter(o => !autoSundays.includes(o.date) && !o.cancelled).length + (DB.extraVisits||[]).filter(v=>!v.cancelled).length;
+  const effectiveSundays = pastCount - cancelledAuto;
   return `<div class="agenda-grid">
     <div class="card" style="grid-column:1/-1;"><div class="card-title">📊 En chiffres</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center;">
-        <div><div style="font-size:18px;font-weight:800;">${pastCount}</div><div style="font-size:10px;color:var(--text-light);">Dimanches</div></div>
-        <div><div style="font-size:18px;font-weight:800;color:var(--danger);">${cancelledS + cancelledX}</div><div style="font-size:10px;color:var(--text-light);">Annulés</div></div>
-        <div><div style="font-size:18px;font-weight:800;">${extraCount}</div><div style="font-size:10px;color:var(--text-light);">Jours supp.</div></div>
-        <div><div style="font-size:18px;font-weight:800;color:var(--accent);">${pastCount + extraCount - cancelledS - cancelledX}</div><div style="font-size:10px;color:var(--text-light);">Effectués</div></div>
+        <div><div style="font-size:18px;font-weight:800;">${effectiveSundays}</div><div style="font-size:10px;color:var(--text-light);">Dimanches</div></div>
+        <div><div style="font-size:18px;font-weight:800;color:var(--danger);">${totalCancelled}</div><div style="font-size:10px;color:var(--text-light);">Annulés</div></div>
+        <div><div style="font-size:18px;font-weight:800;">${extraDays}</div><div style="font-size:10px;color:var(--text-light);">Jours supp.</div></div>
+        <div><div style="font-size:18px;font-weight:800;color:var(--accent);">${effectiveSundays + extraDays}</div><div style="font-size:10px;color:var(--text-light);">Effectués</div></div>
       </div></div>
     ${renderMonthCalendar()}
     ${renderPastSundays()}
