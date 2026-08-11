@@ -643,3 +643,4 @@ body.dark .cal-day-papa { background: #1E2A3D; color: #7BA0E0; }
 body.dark .cal-day-maman { background: #3D2028; color: #E0A0B0; }
 body.dark .cal-day-extra { background: #3D3020; color: #E0B070; }
 body.dark .cal-day-cancelled { background: #2A2720; color: #808070; }
+.cal-day { aspect-ratio: 1; min-height: 36px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition); position: relative; }
