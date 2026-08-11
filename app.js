@@ -593,11 +593,13 @@ function renderMonthCalendar() {
     }
   });
 
-  // Apply manual overrides from sundayOverrides (for any day, not just Sundays)
+  // Apply manual overrides from sundayOverrides
   (DB.sundayOverrides || []).forEach(o => {
     if (o.date && o.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
       if (o.cancelled) custodyMap[o.date] = 'cancelled';
-      else custodyMap[o.date] = 'maman';
+      else if (o.who === 'Maman') custodyMap[o.date] = 'maman';
+      else if (o.who === 'Papy/Mamie') custodyMap[o.date] = 'papy';
+      else custodyMap[o.date] = 'other';
     }
   });
 
@@ -612,7 +614,7 @@ function renderMonthCalendar() {
     const type = custodyMap[ds] || 'papa';
     const isToday = ds === today;
     const cls = `cal-day cal-day-${type}${isToday ? ' cal-day-today' : ''}`;
-    html += `<div class="${cls}" onclick="showCustodyModal('${ds}','${type}')">${d}<div style="font-size:7px;margin-top:-2px;">${type === 'maman' ? 'M' : type === 'extra' ? '+' : type === 'cancelled' ? '✕' : ''}</div></div>`;
+    html += `<div class="${cls}" onclick="showCustodyModal('${ds}','${type}')">${d}<div style="font-size:7px;margin-top:-2px;">${type === 'maman' ? 'Ma' : type === 'extra' ? '+' : type === 'cancelled' ? '✕' : type === 'papy' ? 'PM' : type === 'other' ? '?' : ''}</div></div>`;
   }
 
   html += '</div>';
@@ -625,7 +627,7 @@ function renderMonthCalendar() {
     </div>
     ${html}
     <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--text-light);justify-content:center;">
-      <span>🔴 Chez Maman</span><span>⚫ Annulé</span>
+      <span>🔴 Maman</span><span>🟢 Papy/Mamie</span><span>⚫ Annulé</span>
     </div>
   </div>`;
 }
@@ -634,32 +636,31 @@ function renderMonthCalendar() {
 
 
 function showCustodyModal(dateStr, currentType) {
-  const isCancelled = currentType === 'cancelled';
-  const isMaman = currentType === 'maman' || currentType === 'extra' || currentType === 'cancelled';
   const existingOv = (DB.sundayOverrides || []).find(o => o.date === dateStr);
-  const savedTime = existingOv ? (existingOv.time || DB.settings.firstSundayNote || '') : (DB.settings.firstSundayNote || '');
+  const savedWho = existingOv ? (existingOv.who || 'maman') : 'maman';
   const savedNote = existingOv ? (existingOv.note || '') : '';
+  const isCancelled = currentType === 'cancelled';
+  const isSet = currentType !== 'papa';
 
   showModal(fmtLong(dateStr), [
-    { id: 'maman', l: 'Chez Maman ?', t: 'sel', opts: ['Non', 'Oui'] },
+    { id: 'who', l: 'Chez qui ?', t: 'sel', opts: ['Papa (défaut)', 'Maman', 'Papy/Mamie', 'Tata/Tonton', 'Autre'] },
     { id: 'cancelled', l: 'Annulé ?', t: 'sel', opts: ['Non', 'Oui'] },
     { id: 'note', l: 'Note', p: '' }
   ], function(d) {
-    var isMom = d.maman === 'Oui';
     var isCanc = d.cancelled === 'Oui';
+    var who = d.who || 'Papa (défaut)';
     DB.sundayOverrides = (DB.sundayOverrides || []).filter(function(o) { return o.date !== dateStr; });
-    DB.extraVisits = (DB.extraVisits || []).filter(function(v) { return v.date !== dateStr; });
-    if (isMom) {
-      DB.sundayOverrides.push({ date: dateStr, time: savedTime, note: d.note || '', cancelled: isCanc });
+    if (who !== 'Papa (défaut)') {
+      DB.sundayOverrides.push({ date: dateStr, who: who, note: d.note || '', cancelled: isCanc });
     }
-    saveDB(); cloudPushSettings(); navigate('agenda'); toast(isMom ? (isCanc ? 'Annulé' : 'Chez Maman') : 'Chez Papa');
+    saveDB(); cloudPushSettings(); navigate('agenda'); toast(who === 'Papa (défaut)' ? 'Chez Papa' : (isCanc ? 'Annulé' : 'Chez ' + who));
   });
 
   setTimeout(function() {
-    var elM = document.getElementById('fm-maman');
+    var elW = document.getElementById('fm-who');
     var elC = document.getElementById('fm-cancelled');
     var elN = document.getElementById('fm-note');
-    if (elM) elM.value = isMaman ? 'Oui' : 'Non';
+    if (elW) elW.value = isSet ? (existingOv ? savedWho : 'Maman') : 'Papa (défaut)';
     if (elC) elC.value = isCancelled ? 'Oui' : 'Non';
     if (elN) elN.value = savedNote;
   }, 150);
@@ -854,9 +855,9 @@ function showExpenseModal() { showModal('Nouvelle dépense', [{ id: 'date', l: '
 function showApptModal(preDate) {
   const aydenTypes = ['Pédiatre', 'Dentiste', 'Ophtalmo', 'ORL', 'Vaccin', 'Kiné', 'Orthophoniste', 'Urgence', 'Autre'];
   const papaTypes = ['Médecin traitant', 'Dentiste', 'Ophtalmo', 'Coiffeur / Barbier', 'Kiné', 'Voiture', 'Admin', 'Travail', 'Sport', 'Autre'];
-  showModal('Nouveau RDV', [{ id: 'date', l: 'Date', t: 'date' }, { id: 'who', l: 'Qui ?', t: 'sel', opts: ['Ayden', 'Papa'] }, { id: 'type', l: 'Type', t: 'sel', opts: aydenTypes }, { id: 'time', l: 'Heure', t: 'sel', opts: ['', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '13:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00'] }, { id: 'doctor', l: 'Docteur / Lieu', p: '' }, { id: 'notes', l: 'Notes', p: '' }], d => {
+  showModal('Nouveau RDV', [{ id: 'date', l: 'Date début', t: 'date' }, { id: 'endDate', l: 'Date fin (si plage)', t: 'date' }, { id: 'who', l: 'Qui ?', t: 'sel', opts: ['Ayden', 'Papa'] }, { id: 'type', l: 'Type', t: 'sel', opts: aydenTypes }, { id: 'time', l: 'Heure', t: 'sel', opts: ['', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '13:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00'] }, { id: 'doctor', l: 'Docteur / Lieu', p: '' }, { id: 'notes', l: 'Notes', p: '' }], d => {
     const who = d.who || 'Ayden', type = d.type || 'Autre';
-    const item = { _id: uid(), type, who, doctor: d.doctor || '', date: d.date, time: d.time || '', notes: d.notes || '' };
+    const item = { _id: uid(), type, who, doctor: d.doctor || '', date: d.date, endDate: d.endDate || '', time: d.time || '', notes: d.notes || '' };
     if (who === 'Papa') { if (!DB.papaAppointments) DB.papaAppointments = []; DB.papaAppointments.push(item); }
     else { DB.appointments.push(item); }
     saveDB(); cloudPushSettings(); render(); toast(who === 'Papa' ? 'RDV Papa' : 'RDV Ayden');
