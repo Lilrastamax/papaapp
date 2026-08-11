@@ -837,7 +837,7 @@ function showModal(title, fields, cb) {
   $('#app').insertAdjacentHTML('beforeend', '<div class="modal-overlay" id="modalOverlay"><div class="modal"><h3>' + title + '</h3>' + inputsHtml + '<div class="modal-btns"><button class="btn btn-outline" id="mCancel">Annuler</button><button class="btn btn-primary" id="mSave">Enregistrer</button></div></div></div>');
   $('#modalOverlay').onclick = e => { if (e.target === $('#modalOverlay')) closeM(); };
   $('#mCancel').onclick = closeM;
-  $('#mSave').onclick = () => { const d = {}; fields.forEach(f => { if (f.id) d[f.id] = $('#fm-' + f.id)?.value || ''; }); cb(d); closeM(); };
+  $('#mSave').onclick = () => { const d = {};     fields.forEach(f => { if (f.t !== 'btn') d[f.id] = $('#fm-' + f.id).value; }); cb(d); closeM(); };
 }
 function closeM() { const m = $('#modalOverlay'); if (m) m.remove(); }
 
