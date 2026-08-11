@@ -12,7 +12,7 @@ const CFG = {
 };
 
 // ========== ÉTAT GLOBAL ==========
-let S = { token: null, refresh: null, screen: 'home', weekOffset: 0, fabOpen: false };
+let S = { token: null, refresh: null, screen: 'home', weekOffset: 0, fabOpen: false, calMonth: 0 };
 let DB = null;
 let lockTimer = null;
 
@@ -553,7 +553,8 @@ function renderActivites() {
 
 function renderMonthCalendar() {
   const now = new Date(); now.setHours(0, 0, 0, 0);
-  const year = now.getFullYear(), month = now.getMonth();
+  const displayDate = new Date(now.getFullYear(), now.getMonth() + S.calMonth, 1);
+  const year = displayDate.getFullYear(), month = displayDate.getMonth();
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const startDow = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Monday=0
@@ -615,7 +616,11 @@ function renderMonthCalendar() {
   html += '</div>';
 
   return `<div class="card" style="grid-column:1/-1;">
-    <div class="card-title">📅 ${now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <button class="btn-lock" style="width:30px;height:30px;" onclick="event.stopPropagation();S.calMonth--;render();">◀</button>
+      <span style="font-size:14px;font-weight:700;color:var(--text);">${displayDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</span>
+      <button class="btn-lock" style="width:30px;height:30px;" onclick="event.stopPropagation();S.calMonth++;render();">▶</button>
+    </div>
     ${html}
     <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--text-light);justify-content:center;">
       <span>🔵 Papa</span><span>🔴 Maman</span><span>🟠 Extra</span><span>⚫ Annulé</span>
