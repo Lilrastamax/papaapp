@@ -646,7 +646,7 @@ function showCustodyModal(dateStr, currentType) {
     { id: 'who', l: 'Ayden est chez...', t: 'sel', opts: ['Maman', 'Papy/Mamie', 'Tata/Tonton', 'Autre'] },
     { id: 'cancelled', l: 'Annulé ?', t: 'sel', opts: ['Non', 'Oui'] },
     { id: 'note', l: 'Note', p: '' },
-    { id: 'reset', t: 'btn', x: '<button type="button" class="btn btn-outline btn-sm btn-full" onclick="event.preventDefault();DB.sundayOverrides=(DB.sundayOverrides||[]).filter(o=>o.date!==\x27'+dateStr+'\x27);saveDB();cloudPushSettings();closeM();navigate(\x27agenda\x27);toast(\x27Remis par défaut (Papa)\x27)" style="margin-top:8px;">↩ Remettre par défaut (Papa)</button>' }
+    { id: 'reset', t: 'btn', x: '<button type="button" class="btn btn-outline btn-sm btn-full" onclick="event.preventDefault();DB.sundayOverrides=(DB.sundayOverrides||[]).filter(o=>o.date!==' + "'" + dateStr + "'" + ');saveDB();cloudPushSettings();navigate(' + "'agenda'" + ');closeM();toast(' + "'Remis par défaut'" + ')" style="margin-top:8px;">↩ Remettre par défaut (Papa)</button>' }
   ], function(d) {
     var isCanc = d.cancelled === 'Oui';
     var who = d.who || 'Maman';
