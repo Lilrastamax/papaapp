@@ -653,7 +653,7 @@ function showCustodyModal(dateStr, currentType) {
     if (isMom) {
       DB.sundayOverrides.push({ date: dateStr, time: savedTime, note: d.note || '', cancelled: isCanc });
     }
-    saveDB(); cloudPushSettings(); render(); toast('Journée mise à jour');
+    saveDB(); cloudPushSettings(); navigate('agenda'); toast('Journée mise à jour');
   });
 
   // Pré-remplir les valeurs
