@@ -627,3 +627,19 @@ body.dark .btn-del:hover { background: #3D1818; }
 body.dark .cal-today { background: #E8E2D8 !important; color: #2A2722 !important; }
 
 body.dark .cal-today { background: #E8E2D8 !important; color: #2A2722 !important; }
+
+/* ========== MONTHLY CALENDAR ========== */
+.cal-month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-month-header { text-align: center; font-size: 10px; font-weight: 700; color: var(--text-light); padding: 4px 0; }
+.cal-day { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; cursor: pointer; transition: all var(--transition); position: relative; min-width: 0; }
+.cal-day:hover { transform: scale(1.05); z-index: 1; }
+.cal-day-empty { cursor: default; }
+.cal-day-today { box-shadow: 0 0 0 2px var(--primary); }
+.cal-day-papa { background: #E8EEF8; color: #3A5BA0; }
+.cal-day-maman { background: #FDE8EC; color: #B05060; }
+.cal-day-extra { background: #FDF0E0; color: #B07030; }
+.cal-day-cancelled { background: #F0EDE8; color: #B0A090; text-decoration: line-through; }
+body.dark .cal-day-papa { background: #1E2A3D; color: #7BA0E0; }
+body.dark .cal-day-maman { background: #3D2028; color: #E0A0B0; }
+body.dark .cal-day-extra { background: #3D3020; color: #E0B070; }
+body.dark .cal-day-cancelled { background: #2A2720; color: #808070; }

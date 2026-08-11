@@ -474,6 +474,7 @@ function renderAgenda() {
         <div><div style="font-size:18px;font-weight:800;">${extraCount}</div><div style="font-size:10px;color:var(--text-light);">Jours supp.</div></div>
         <div><div style="font-size:18px;font-weight:800;color:var(--accent);">${pastCount + extraCount - cancelledS - cancelledX}</div><div style="font-size:10px;color:var(--text-light);">Effectués</div></div>
       </div></div>
+    ${renderMonthCalendar()}
     <div class="card"><div class="card-title">👨‍👦 Garde</div><div style="background:var(--card-alt);border-radius:12px;padding:12px;text-align:center;margin-bottom:8px;"><div style="font-size:12px;color:var(--text-light);">Garde complète</div><div style="font-size:18px;font-weight:800;">Papa</div></div><div style="background:var(--accent-light);border-radius:12px;padding:12px;text-align:center;"><div style="font-size:12px;color:var(--text-light);">Droit de visite</div><div style="font-size:16px;font-weight:700;color:var(--accent);">Maman</div><div style="font-size:11px;color:var(--accent);">${s.firstSundayDate ? `1 dimanche sur ${s.sundayInterval / 7}` : 'Pas configuré'}</div></div></div>
     <div class="card"><div class="card-title">🗓 Prochains dimanches</div>${sundays.length ? sundays.map((d, i) => { const ds = dateISO(d); const ov = (DB.sundayOverrides || []).find(o => o.date === ds) || {}; const time = ov.time || s.firstSundayNote || '9h-18h'; const cancelled = ov.cancelled; return `<div class="doc-item" onclick="showSundayOverrideModal('${ds}')" style="cursor:pointer;"><div class="doc-icon">${cancelled ? '❌' : '👩‍👦'}</div><div class="doc-info"><div class="name">${fmtLong(d)}${cancelled ? ' <span style="color:var(--danger);font-size:11px;">(annulé' + (ov.note ? ': ' + ov.note : '') + ')</span>' : ''}</div><div class="meta">${cancelled ? '' : (time || '')}${!cancelled && ov.note ? ' · ' + ov.note : ''}</div></div><span class="badge badge-${i === 0 && !cancelled ? 'warn' : 'ok'}">${daysUntil(d)}j</span></div>`; }).join('') : '<div class="empty"><div class="sub">Configure dans ⚙️ Paramètres</div></div>'}</div>
     <div class="card"><div class="card-title">🎒 Checklist départ</div>${DB.checklists.sunday.map(i => `<div class="cl-item"><input type="checkbox" id="sun-${i.id}" ${i.checked ? 'checked' : ''} data-cl="sunday" data-id="${i.id}"><label for="sun-${i.id}">${i.label}</label></div>`).join('')}</div>
@@ -548,6 +549,116 @@ function renderActivites() {
       <button class="btn btn-outline btn-full btn-sm" style="margin-top:8px" data-action="add-papa-activite">+ Mon activité</button></div>
   </div>`;
 }
+
+
+function renderMonthCalendar() {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const year = now.getFullYear(), month = now.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startDow = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Monday=0
+  const daysInMonth = lastDay.getDate();
+  const today = dateISO(new Date());
+
+  // Build custody map: determine who has Ayden on each day
+  const custodyMap = {};
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const ds = dateISO(date);
+    custodyMap[ds] = 'papa'; // default: Papa
+  }
+
+  // Mark automatic Sundays
+  const sundayDates = getNextSundays().map(s => dateISO(s));
+  // Also generate ALL sundays for this month (past and future)
+  const fd = DB.settings.firstSundayDate;
+  if (fd) {
+    const ref = new Date(fd);
+    const iv = DB.settings.sundayInterval || 14;
+    // Go backwards to find sundays in this month too
+    let d = new Date(ref);
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    while (d <= monthEnd) {
+      const ds = dateISO(d);
+      if (d >= monthStart && d.getDay() === 0) {
+        const ov = (DB.sundayOverrides || []).find(o => o.date === ds) || {};
+        if (ov.cancelled) custodyMap[ds] = 'cancelled';
+        else custodyMap[ds] = 'maman';
+      }
+      d.setDate(d.getDate() + iv);
+    }
+  }
+
+  // Mark extra visits
+  (DB.extraVisits || []).forEach(v => {
+    if (v.date && v.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
+      if (v.cancelled) custodyMap[v.date] = 'cancelled';
+      else custodyMap[v.date] = 'extra';
+    }
+  });
+
+  const headers = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  let html = '<div class="cal-month">' + headers.map(h => `<div class="cal-month-header">${h}</div>`).join('');
+
+  // Empty cells before first day
+  for (let i = 0; i < startDow; i++) html += '<div class="cal-day cal-day-empty"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const type = custodyMap[ds] || 'papa';
+    const isToday = ds === today;
+    const cls = `cal-day cal-day-${type}${isToday ? ' cal-day-today' : ''}`;
+    html += `<div class="${cls}" onclick="showCustodyModal('${ds}','${type}')">${d}<div style="font-size:7px;margin-top:-2px;">${type === 'maman' ? 'M' : type === 'extra' ? '+' : type === 'cancelled' ? '✕' : ''}</div></div>`;
+  }
+
+  html += '</div>';
+
+  return `<div class="card" style="grid-column:1/-1;">
+    <div class="card-title">📅 ${now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</div>
+    ${html}
+    <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--text-light);justify-content:center;">
+      <span>🔵 Papa</span><span>🔴 Maman</span><span>🟠 Extra</span><span>⚫ Annulé</span>
+    </div>
+  </div>`;
+}
+
+function showCustodyModal(dateStr, currentType) {
+  showModal('Journée ' + fmtLong(dateStr), [
+    { id: 'type', l: 'Qui garde ?', t: 'sel', opts: ['Papa', 'Maman (dimanche)', 'Maman (extra)', 'Annulé'] },
+    { id: 'note', l: 'Note', p: '' }
+  ], d => {
+    // Handle changing custody type
+    if (d.type === 'Papa') {
+      // Remove any overrides
+      DB.sundayOverrides = (DB.sundayOverrides || []).filter(o => o.date !== dateStr);
+      DB.extraVisits = (DB.extraVisits || []).filter(v => v.date !== dateStr);
+    } else if (d.type === 'Annulé') {
+      const existing = (DB.sundayOverrides || []).find(o => o.date === dateStr);
+      if (existing) { existing.cancelled = true; existing.note = d.note || existing.note; }
+      else {
+        DB.sundayOverrides.push({ date: dateStr, time: '', note: d.note || '', cancelled: true });
+      }
+      DB.extraVisits = (DB.extraVisits || []).filter(v => v.date !== dateStr);
+    } else if (d.type === 'Maman (extra)') {
+      DB.sundayOverrides = (DB.sundayOverrides || []).filter(o => o.date !== dateStr);
+      const existing = (DB.extraVisits || []).find(v => v.date === dateStr);
+      if (existing) { existing.cancelled = false; existing.note = d.note || existing.note; }
+      else { DB.extraVisits.push({ _id: uid(), date: dateStr, time: '', note: d.note || '', cancelled: false }); }
+    } else if (d.type === 'Maman (dimanche)') {
+      DB.extraVisits = (DB.extraVisits || []).filter(v => v.date !== dateStr);
+      const existing = (DB.sundayOverrides || []).find(o => o.date === dateStr);
+      if (existing) { existing.cancelled = false; existing.note = d.note || existing.note; }
+      else { DB.sundayOverrides.push({ date: dateStr, time: '', note: d.note || '', cancelled: false }); }
+    }
+    saveDB(); cloudPushSettings(); render(); toast('Journée mise à jour');
+  });
+  setTimeout(() => {
+    const map = { papa: 'Papa', maman: 'Maman (dimanche)', extra: 'Maman (extra)', cancelled: 'Annulé' };
+    $('#fm-type').value = map[currentType] || 'Papa';
+  }, 100);
+}
+window.showCustodyModal = showCustodyModal;
 
 function renderMaison() {
   const now = new Date(), mois = now.toISOString().slice(0, 7);
