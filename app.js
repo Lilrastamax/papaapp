@@ -414,12 +414,12 @@ function renderWeekCalendar() {
     const ds = dateISO(d);
     const isToday = d.getTime() === today.getTime();
     const labels = [];
-    DB.appointments.filter(a => a.date === ds).slice(0, 2).forEach(a => labels.push({ t: (a.time ? a.time + ' ' : '') + a.type, c: '#4A5CD0', bg: '#E8EBFF' }));
-    (DB.papaAppointments || []).filter(a => a.date === ds).slice(0, 2).forEach(a => labels.push({ t: (a.time ? a.time + ' ' : '') + a.type, c: '#D48935', bg: '#FFF4E8' }));
-    getNextSundays().filter(s => dateISO(s) === ds && d.getDay() === 0).forEach(() => labels.push({ t: 'Maman', c: '#C06070', bg: '#FFF0F3' }));
-    (DB.extraVisits || []).filter(v => v.date === ds).forEach(v => labels.push({ t: 'Maman', c: '#C06070', bg: '#FFF0F3' }));
-    (DB.schoolDates || []).filter(sd => sd.date === ds).forEach(sd => labels.push({ t: sd.label.slice(0, 8), c: '#50B060', bg: '#E6FAF2' }));
-    days += `<div style="flex:1;text-align:center;padding:10px 4px;border-radius:14px;cursor:pointer;min-width:0;${isToday ? 'background:var(--primary-dark);color:#fff;font-weight:700;' : i === 6 ? 'background:#FFF0F3;' : 'background:var(--card-alt);'}" class="${isToday ? 'cal-today' : ''}" onclick="addApptForDate('${ds}')">
+    DB.appointments.filter(a => a.date === ds).slice(0, 2).forEach(a => labels.push({ t: (a.time ? a.time + ' ' : '') + a.type, c: '#3A4AB5', bg: '#D0D4F5' }));
+    (DB.papaAppointments || []).filter(a => a.date === ds).slice(0, 2).forEach(a => labels.push({ t: (a.time ? a.time + ' ' : '') + a.type, c: '#B06520', bg: '#FDE8D0' }));
+    getNextSundays().filter(s => dateISO(s) === ds && d.getDay() === 0).forEach(() => labels.push({ t: 'Maman', c: '#A05060', bg: '#FDE0E5' }));
+    (DB.extraVisits || []).filter(v => v.date === ds).forEach(v => labels.push({ t: 'Maman', c: '#A05060', bg: '#FDE0E5' }));
+    (DB.schoolDates || []).filter(sd => sd.date === ds).forEach(sd => labels.push({ t: sd.label.slice(0, 8), c: '#408050', bg: '#D8F0E0' }));
+    days += `<div style="flex:1;text-align:center;padding:10px 4px;border-radius:14px;cursor:pointer;min-width:0;${isToday ? 'background:#4A4038;color:#fff;font-weight:700;' : i === 6 ? 'background:#FFF0F3;' : 'background:var(--card-alt);'}" class="${isToday ? 'cal-today' : ''}" onclick="addApptForDate('${ds}')">
       <div style="font-size:11px;font-weight:700;margin-bottom:4px;">${dn[i]}</div><div style="font-size:22px;font-weight:${isToday ? '800' : '600'};line-height:1;">${d.getDate()}</div>
       <div style="margin-top:6px;display:flex;flex-direction:column;gap:2px;">${labels.map(l => `<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:5px;background:${l.bg};color:${l.c};overflow:hidden;text-overflow:ellipsis;">${l.t}</span>`).join('')}</div>
       ${!labels.length ? `<div style="margin-top:6px;font-size:16px;opacity:0.3;">+</div>` : ''}
