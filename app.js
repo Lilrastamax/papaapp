@@ -612,7 +612,7 @@ function renderMonthCalendar() {
     const type = custodyMap[ds] || 'papa';
     const isToday = ds === today;
     const cls = `cal-day cal-day-${type}${isToday ? ' cal-day-today' : ''}`;
-    html += `<div class="${cls}" onclick="alert('test');showCustodyModal('${ds}','${type}')">${d}<div style="font-size:7px;margin-top:-2px;">${type === 'maman' ? 'M' : type === 'extra' ? '+' : type === 'cancelled' ? '✕' : ''}</div></div>`;
+    html += `<div class="${cls}" onclick="showCustodyModal('${ds}','${type}')">${d}<div style="font-size:7px;margin-top:-2px;">${type === 'maman' ? 'M' : type === 'extra' ? '+' : type === 'cancelled' ? '✕' : ''}</div></div>`;
   }
 
   html += '</div>';
