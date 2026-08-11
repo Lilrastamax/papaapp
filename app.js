@@ -593,6 +593,14 @@ function renderMonthCalendar() {
     }
   });
 
+  // Apply manual overrides from sundayOverrides (for any day, not just Sundays)
+  (DB.sundayOverrides || []).forEach(o => {
+    if (o.date && o.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
+      if (o.cancelled) custodyMap[o.date] = 'cancelled';
+      else custodyMap[o.date] = 'maman';
+    }
+  });
+
   const headers = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
   let html = '<div class="cal-month">' + headers.map(h => `<div class="cal-month-header">${h}</div>`).join('');
 
