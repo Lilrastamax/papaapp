@@ -637,30 +637,29 @@ function renderMonthCalendar() {
 
 function showCustodyModal(dateStr, currentType) {
   const existingOv = (DB.sundayOverrides || []).find(o => o.date === dateStr);
-  const savedWho = existingOv ? (existingOv.who || 'maman') : 'maman';
+  const savedWho = existingOv ? (existingOv.who || 'Maman') : 'Maman';
   const savedNote = existingOv ? (existingOv.note || '') : '';
   const isCancelled = currentType === 'cancelled';
   const isSet = currentType !== 'papa';
 
   showModal(fmtLong(dateStr), [
-    { id: 'who', l: 'Chez qui ?', t: 'sel', opts: ['Papa (défaut)', 'Maman', 'Papy/Mamie', 'Tata/Tonton', 'Autre'] },
+    { id: 'who', l: 'Ayden est chez...', t: 'sel', opts: ['Maman', 'Papy/Mamie', 'Tata/Tonton', 'Autre'] },
     { id: 'cancelled', l: 'Annulé ?', t: 'sel', opts: ['Non', 'Oui'] },
-    { id: 'note', l: 'Note', p: '' }
+    { id: 'note', l: 'Note', p: '' },
+    { id: 'reset', t: 'btn', x: '<button type="button" class="btn btn-outline btn-sm btn-full" onclick="event.preventDefault();DB.sundayOverrides=(DB.sundayOverrides||[]).filter(o=>o.date!==\x27'+dateStr+'\x27);saveDB();cloudPushSettings();closeM();navigate(\x27agenda\x27);toast(\x27Remis par défaut (Papa)\x27)" style="margin-top:8px;">↩ Remettre par défaut (Papa)</button>' }
   ], function(d) {
     var isCanc = d.cancelled === 'Oui';
-    var who = d.who || 'Papa (défaut)';
+    var who = d.who || 'Maman';
     DB.sundayOverrides = (DB.sundayOverrides || []).filter(function(o) { return o.date !== dateStr; });
-    if (who !== 'Papa (défaut)') {
-      DB.sundayOverrides.push({ date: dateStr, who: who, note: d.note || '', cancelled: isCanc });
-    }
-    saveDB(); cloudPushSettings(); navigate('agenda'); toast(who === 'Papa (défaut)' ? 'Chez Papa' : (isCanc ? 'Annulé' : 'Chez ' + who));
+    DB.sundayOverrides.push({ date: dateStr, who: who, note: d.note || '', cancelled: isCanc });
+    saveDB(); cloudPushSettings(); navigate('agenda'); toast(isCanc ? 'Annulé' : 'Chez ' + who);
   });
 
   setTimeout(function() {
     var elW = document.getElementById('fm-who');
     var elC = document.getElementById('fm-cancelled');
     var elN = document.getElementById('fm-note');
-    if (elW) elW.value = isSet ? (existingOv ? savedWho : 'Maman') : 'Papa (défaut)';
+    if (elW) elW.value = isSet ? savedWho : 'Maman';
     if (elC) elC.value = isCancelled ? 'Oui' : 'Non';
     if (elN) elN.value = savedNote;
   }, 150);
@@ -826,6 +825,7 @@ window.viewDocument = viewDocument;
 function showModal(title, fields, cb) {
   const ex = $('#modalOverlay'); if (ex) ex.remove();
   let inputsHtml = fields.map(f => {
+    if (f.t === 'btn') return f.x || '';
     let input = '';
     if (f.t === 'sel') { input = '<select id="fm-' + f.id + '" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);font-size:14px;color:var(--text);background:var(--card-alt);outline:none;">' + (f.opts || []).map(o => '<option>' + o + '</option>').join('') + '</select>'; }
     else if (f.t === 'ta') { input = '<textarea id="fm-' + f.id + '" placeholder="' + (f.p || '') + '"></textarea>'; }
