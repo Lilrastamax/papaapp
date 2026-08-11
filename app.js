@@ -631,33 +631,43 @@ function renderMonthCalendar() {
 }
 
 
+
 function showCustodyModal(dateStr, currentType) {
   const isCancelled = currentType === 'cancelled';
-  const who = currentType === 'papa' ? 'Papa' : (currentType === 'cancelled' ? 'Maman' : 'Maman');
+  const who = (currentType === 'papa') ? 'Papa' : 'Maman';
   const existingOv = (DB.sundayOverrides || []).find(o => o.date === dateStr);
-  const existingTime = existingOv ? existingOv.time : (DB.settings.firstSundayNote || '');
+  const savedTime = existingOv ? (existingOv.time || DB.settings.firstSundayNote || '') : (DB.settings.firstSundayNote || '');
+  const savedNote = existingOv ? (existingOv.note || '') : '';
+
   showModal('Journée ' + fmtLong(dateStr), [
     { id: 'who', l: 'Qui garde ?', t: 'sel', opts: ['Papa', 'Maman'] },
     { id: 'cancelled', l: 'Annulé ?', t: 'sel', opts: ['Non', 'Oui'] },
     { id: 'note', l: 'Note', p: '' }
-  ], d => {
-    const isMom = d.who === 'Maman';
-    const isCanc = d.cancelled === 'Oui';
-    DB.sundayOverrides = (DB.sundayOverrides || []).filter(o => o.date !== dateStr);
-    DB.extraVisits = (DB.extraVisits || []).filter(v => v.date !== dateStr);
-    if (isMom && isCanc) {
-      DB.sundayOverrides.push({ date: dateStr, time: existingTime, note: d.note || '', cancelled: true });
-    } else if (isMom) {
-      DB.sundayOverrides.push({ date: dateStr, time: existingTime, note: d.note || '', cancelled: false });
+  ], function(d) {
+    var isMom = d.who === 'Maman';
+    var isCanc = d.cancelled === 'Oui';
+    // Nettoyer les entrées existantes pour cette date
+    DB.sundayOverrides = (DB.sundayOverrides || []).filter(function(o) { return o.date !== dateStr; });
+    DB.extraVisits = (DB.extraVisits || []).filter(function(v) { return v.date !== dateStr; });
+    // Ajouter la nouvelle entrée si Maman
+    if (isMom) {
+      DB.sundayOverrides.push({ date: dateStr, time: savedTime, note: d.note || '', cancelled: isCanc });
     }
     saveDB(); cloudPushSettings(); render(); toast('Journée mise à jour');
   });
-  setTimeout(() => {
-    $('#fm-who').value = who;
-    $('#fm-cancelled').value = isCancelled ? 'Oui' : 'Non';
-    $('#fm-note').value = (existingOv ? existingOv.note : '') || '';
-  }, 100);
+
+  // Pré-remplir les valeurs
+  setTimeout(function() {
+    var elWho = document.getElementById('fm-who');
+    var elCanc = document.getElementById('fm-cancelled');
+    var elNote = document.getElementById('fm-note');
+    if (elWho) elWho.value = who;
+    if (elCanc) elCanc.value = isCancelled ? 'Oui' : 'Non';
+    if (elNote) elNote.value = savedNote;
+  }, 150);
 }
+window.showCustodyModal = showCustodyModal;
+
 window.showCustodyModal = showCustodyModal;
 
 window.showCustodyModal = showCustodyModal;
