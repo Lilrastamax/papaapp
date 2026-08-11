@@ -626,6 +626,8 @@ function renderMonthCalendar() {
 function showCustodyModal(dateStr, currentType) {
   const isCancelled = currentType === 'cancelled';
   const who = currentType === 'papa' ? 'Papa' : (currentType === 'cancelled' ? 'Maman' : 'Maman');
+  const existingOv = (DB.sundayOverrides || []).find(o => o.date === dateStr);
+  const existingTime = existingOv ? existingOv.time : (DB.settings.firstSundayNote || '');
   showModal('Journée ' + fmtLong(dateStr), [
     { id: 'who', l: 'Qui garde ?', t: 'sel', opts: ['Papa', 'Maman'] },
     { id: 'cancelled', l: 'Annulé ?', t: 'sel', opts: ['Non', 'Oui'] },
@@ -633,24 +635,19 @@ function showCustodyModal(dateStr, currentType) {
   ], d => {
     const isMom = d.who === 'Maman';
     const isCanc = d.cancelled === 'Oui';
-    // Remove existing overrides for this date
     DB.sundayOverrides = (DB.sundayOverrides || []).filter(o => o.date !== dateStr);
     DB.extraVisits = (DB.extraVisits || []).filter(v => v.date !== dateStr);
-
     if (isMom && isCanc) {
-      // Maman prévu mais annulé
-      DB.sundayOverrides.push({ date: dateStr, time: '', note: d.note || '', cancelled: true });
+      DB.sundayOverrides.push({ date: dateStr, time: existingTime, note: d.note || '', cancelled: true });
     } else if (isMom) {
-      // Maman prévu et maintenu
-      DB.sundayOverrides.push({ date: dateStr, time: '', note: d.note || '', cancelled: false });
+      DB.sundayOverrides.push({ date: dateStr, time: existingTime, note: d.note || '', cancelled: false });
     }
-    // Papa: nothing to store (default)
-
     saveDB(); cloudPushSettings(); render(); toast('Journée mise à jour');
   });
   setTimeout(() => {
     $('#fm-who').value = who;
     $('#fm-cancelled').value = isCancelled ? 'Oui' : 'Non';
+    $('#fm-note').value = (existingOv ? existingOv.note : '') || '';
   }, 100);
 }
 window.showCustodyModal = showCustodyModal;
@@ -972,7 +969,7 @@ function importData() {
         DB.checklists = data.checklists || defaultDB().checklists;
         DB.school = data.school || {};
         ['schoolItems', 'schoolDates', 'medications', 'shoppingList', 'sundayNotes', 'sundayOverrides', 'papaAppointments', 'papaNotes', 'teeth', 'clothingHistory', 'recurringTasks', 'factures', 'vehicule', 'revenus', 'abonnements', 'contrats', 'activites', 'extraVisits', 'papaActivites', 'papaAydenActivites'].forEach(k => { DB[k] = data[k] || []; });
-        DB._synced = false; saveDB(); updateHeader(); render(); toast('Données restaurées'); closeM();
+        DB._synced = false; saveDB(); cloudPushSettings(); updateHeader(); render(); toast('Données restaurées');
       } catch (e) { toast('Erreur de lecture'); }
     };
     r.readAsText(inp.files[0]);
