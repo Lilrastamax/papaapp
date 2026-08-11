@@ -419,7 +419,7 @@ function renderWeekCalendar() {
     getNextSundays().filter(s => dateISO(s) === ds && d.getDay() === 0).forEach(() => labels.push({ t: 'Maman', c: '#C06070', bg: '#FFF0F3' }));
     (DB.extraVisits || []).filter(v => v.date === ds).forEach(v => labels.push({ t: 'Maman', c: '#C06070', bg: '#FFF0F3' }));
     (DB.schoolDates || []).filter(sd => sd.date === ds).forEach(sd => labels.push({ t: sd.label.slice(0, 8), c: '#50B060', bg: '#E6FAF2' }));
-    days += `<div style="flex:1;text-align:center;padding:10px 4px;border-radius:14px;cursor:pointer;min-width:0;${isToday ? 'background:var(--text);color:#fff;font-weight:700;' : i === 6 ? 'background:#FFF0F3;' : 'background:var(--card-alt);'}" onclick="addApptForDate('${ds}')">
+    days += `<div style="flex:1;text-align:center;padding:10px 4px;border-radius:14px;cursor:pointer;min-width:0;${isToday ? 'background:var(--primary-dark);color:#fff;font-weight:700;' : i === 6 ? 'background:#FFF0F3;' : 'background:var(--card-alt);'}" onclick="addApptForDate('${ds}')">
       <div style="font-size:11px;font-weight:700;margin-bottom:4px;">${dn[i]}</div><div style="font-size:22px;font-weight:${isToday ? '800' : '600'};line-height:1;">${d.getDate()}</div>
       <div style="margin-top:6px;display:flex;flex-direction:column;gap:2px;">${labels.map(l => `<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:5px;background:${l.bg};color:${l.c};overflow:hidden;text-overflow:ellipsis;">${l.t}</span>`).join('')}</div>
       ${!labels.length ? `<div style="margin-top:6px;font-size:16px;opacity:0.3;">+</div>` : ''}

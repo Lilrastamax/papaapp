@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
   --primary: #6B5E52;
@@ -623,3 +623,5 @@ body.dark .btn-del:hover { background: #3D1818; }
 .qa-btn .qa-text { font-size: 12px; font-weight: 700; color: var(--text); }
 .qa-btn .qa-sub { font-size: 10px; color: var(--text-light); }
 @media (min-width: 769px) { .quick-actions { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+
+body.dark .cal-today { background: #E8E2D8 !important; color: #2A2722 !important; }
