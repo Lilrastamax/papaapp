@@ -40,68 +40,75 @@ export async function refreshAccessToken() {
   } catch (e) { return false; }
 }
 
+function clearSession() {
+  S.token = null; S.refresh = null;
+  localStorage.removeItem('papaapp_token');
+  localStorage.removeItem('papaapp_refresh');
+  toast('Session expirée — reconnecte-toi pour la synchro');
+}
+
+// ========== MAPPING LOCAL <-> CLOUD ==========
+export const ITEM_TYPES = [
+  'documents', 'vaccines', 'appointments', 'growth', 'expenses', 'memories', 'contacts',
+  'schoolItems', 'schoolDates', 'medications', 'shoppingList', 'sundayNotes', 'sundayOverrides',
+  'papaAppointments', 'papaNotes', 'teeth', 'clothingHistory', 'recurringTasks', 'extraVisits',
+  'papaActivites', 'papaAydenActivites', 'factures', 'vehicule', 'revenus', 'abonnements', 'contrats', 'activites'
+];
+
+export function buildItemRows(db) {
+  const rows = [];
+  for (const type of ITEM_TYPES) {
+    const list = db[type] || [];
+    list.forEach((item, index) => {
+      const { _id, ...data } = item;
+      const id = item._id || item.id || (type + ':' + index);
+      rows.push({ id, type, data });
+    });
+  }
+  return rows;
+}
+
+export function applyCloudItems(db, items) {
+  const byType = {};
+  for (const it of items) {
+    if (!it || !it.type || !ITEM_TYPES.includes(it.type)) continue;
+    (byType[it.type] = byType[it.type] || []).push({ _id: it.id, ...(it.data || {}) });
+  }
+  for (const [type, list] of Object.entries(byType)) {
+    if (db[type] !== undefined) db[type] = list;
+  }
+}
+
 export async function cloudSync() {
   if (!cloudReady()) return;
   try {
-    // Fetch settings (which contains all data)
     let s = await fetch(`${CFG.url}/rest/v1/settings?select=*&limit=1`, { headers: sbHeaders() });
     if (s.status === 401) {
-      if (await refreshAccessToken()) {
-        s = await fetch(`${CFG.url}/rest/v1/settings?select=*&limit=1`, { headers: sbHeaders() });
-      } else {
-        S.token = null; S.refresh = null;
-        localStorage.removeItem('papaapp_token');
-        localStorage.removeItem('papaapp_refresh');
-        toast('Session expirée — reconnecte-toi pour la synchro');
-        return;
-      }
+      if (await refreshAccessToken()) s = await fetch(`${CFG.url}/rest/v1/settings?select=*&limit=1`, { headers: sbHeaders() });
+      else { clearSession(); return; }
     }
     if (!s.ok) { console.warn('Sync annulée, statut', s.status); return; }
-    const sd = await s.json();
-    if (Array.isArray(sd) && sd[0]) {
-      mergeCloudSettings(sd[0]);
-      console.log('Sync OK, appointments from cloud:', DB.appointments.length);
-    } else {
-      console.log('Sync: no settings row found');
+    const srows = await s.json();
+    const hasSettings = Array.isArray(srows) && srows[0];
+    if (hasSettings) {
+      const sd = srows[0], st = DB.settings;
+      if (sd.name) st.name = sd.name;
+      if (sd.child_name) st.childName = sd.child_name;
+      if (sd.child_birth_date) st.childBirthDate = sd.child_birth_date;
+      if (sd.first_sunday_date) st.firstSundayDate = sd.first_sunday_date;
+      if (sd.sunday_interval) st.sundayInterval = sd.sunday_interval;
+      if (sd.first_sunday_note) st.firstSundayNote = sd.first_sunday_note;
+      if (sd.checklists) DB.checklists = { ...DB.checklists, ...sd.checklists };
+      if (sd.school) DB.school = { ...DB.school, ...sd.school };
+    }
+    const ir = await fetch(`${CFG.url}/rest/v1/items?select=id,type,data`, { headers: sbHeaders() });
+    if (ir.ok) {
+      const items = await ir.json();
+      if (Array.isArray(items)) applyCloudItems(DB, items);
     }
     DB._synced = true; saveDB();
-  } catch(e) { console.warn('Sync error:', e.message); }
-}
-
-export function mapFromCloud(t, r) {
-  const b = { _id: r.id };
-  const m = {
-    documents: { name: r.name, category: r.category, dateAdded: r.date_added, status: r.status || 'ok', notes: r.notes, scanUrl: r.scan_url, scanData: r.scan_data, fileType: r.file_type },
-    vaccines: { name: r.name, ageMonths: r.age_months, done: r.done, dateDone: r.date_done },
-    appointments: { type: r.type, doctor: r.doctor, date: r.date, time: r.time, notes: r.notes },
-    growth: { date: r.date, weight: r.weight, height: r.height, notes: r.notes },
-    expenses: { date: r.date, category: r.category, amount: r.amount, note: r.note },
-    memories: { date: r.date, text: r.text, mood: r.mood || '💎' },
-    contacts: { name: r.name, specialty: r.specialty, role: r.role, phone: r.phone, notes: r.notes }
-  };
-  return { ...b, ...(m[t] || r) };
-}
-
-export function mergeCloudSettings(sd) {
-  const s = DB.settings;
-  if (sd.name) s.name = sd.name;
-  if (sd.child_name) s.childName = sd.child_name;
-  if (sd.child_birth_date) s.childBirthDate = sd.child_birth_date;
-  if (sd.first_sunday_date) s.firstSundayDate = sd.first_sunday_date;
-  if (sd.sunday_interval) s.sundayInterval = sd.sunday_interval;
-  if (sd.first_sunday_note) s.firstSundayNote = sd.first_sunday_note;
-  if (sd.checklists_state) try { DB.checklists = { ...DB.checklists, ...JSON.parse(sd.checklists_state) }; } catch (e) { }
-  if (sd.school_data) try {
-    const sc = JSON.parse(sd.school_data);
-    const keys = ['school', 'dates', 'items', 'medications', 'shoppingList', 'sundayNotes', 'sundayOverrides', 'papaAppointments', 'papaNotes', 'teeth', 'clothingHistory', 'recurringTasks', 'factures', 'vehicule', 'revenus', 'abonnements', 'contrats', 'activites', 'extraVisits', 'papaActivites', 'papaAydenActivites', 'appointments', 'vaccines', 'documents', 'growth', 'expenses', 'memories', 'contacts'];
-    for (const k of keys) {
-      const key = k === 'dates' ? 'schoolDates' : k === 'items' ? 'schoolItems' : k;
-      if (sc[k] !== undefined) {
-        if (typeof DB[key] === 'object' && !Array.isArray(DB[key])) DB[key] = { ...DB[key], ...sc[k] };
-        else DB[key] = sc[k];
-      }
-    }
-  } catch (e) { }
+    if (!hasSettings) await cloudPushSettings();
+  } catch (e) { console.warn('Sync error:', e.message); }
 }
 
 export async function cloudPushSettings() {
@@ -110,34 +117,30 @@ export async function cloudPushSettings() {
     const body = {
       name: DB.settings.name, child_name: DB.settings.childName,
       child_birth_date: DB.settings.childBirthDate,
-      checklists_state: JSON.stringify(DB.checklists),
-      school_data: JSON.stringify({
-      school: DB.school, dates: DB.schoolDates, items: DB.schoolItems,
-      medications: DB.medications, shoppingList: DB.shoppingList,
-      sundayNotes: DB.sundayNotes, sundayOverrides: DB.sundayOverrides,
-      papaAppointments: DB.papaAppointments, papaNotes: DB.papaNotes,
-      teeth: DB.teeth, clothingHistory: DB.clothingHistory,
-      recurringTasks: DB.recurringTasks, factures: DB.factures,
-      vehicule: DB.vehicule, revenus: DB.revenus,
-        abonnements: DB.abonnements, contrats: DB.contrats, activites: DB.activites, extraVisits: DB.extraVisits, papaActivites: DB.papaActivites, papaAydenActivites: DB.papaAydenActivites,
-      appointments: DB.appointments, vaccines: DB.vaccines,
-      documents: DB.documents, growth: DB.growth,
-      expenses: DB.expenses, memories: DB.memories, contacts: DB.contacts
-    })
-  };
-  // Try PATCH existing row first
-    const r = await fetch(`${CFG.url}/rest/v1/settings?select=id&limit=1`, { headers: sbHeaders() });
-    const data = await r.json();
-    let res;
-    if (Array.isArray(data) && data[0]) {
-      res = await fetch(`${CFG.url}/rest/v1/settings?id=eq.${data[0].id}`, { method: 'PATCH', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' }, body: JSON.stringify(body) });
-    } else {
-      // Insert: let user_id default to auth.uid()
-      res = await fetch(`${CFG.url}/rest/v1/settings`, { method: 'POST', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' }, body: JSON.stringify(body) });
+      first_sunday_date: DB.settings.firstSundayDate || null,
+      sunday_interval: DB.settings.sundayInterval,
+      first_sunday_note: DB.settings.firstSundayNote,
+      checklists: DB.checklists, school: DB.school
+    };
+    let r = await fetch(`${CFG.url}/rest/v1/settings?select=id&limit=1`, { headers: sbHeaders() });
+    if (r.status === 401) {
+      if (await refreshAccessToken()) r = await fetch(`${CFG.url}/rest/v1/settings?select=id&limit=1`, { headers: sbHeaders() });
+      else { clearSession(); return; }
     }
-    if (!res.ok) console.warn('Push failed:', res.status, await res.text());
-    else console.log('Push OK, appointments:', DB.appointments.length);
-  } catch(e) { console.warn('Push error:', e.message); }
+    if (!r.ok) { console.warn('Push annulé (settings), statut', r.status); return; }
+    const rows = await r.json();
+    if (Array.isArray(rows) && rows[0]) {
+      await fetch(`${CFG.url}/rest/v1/settings?id=eq.${rows[0].id}`, { method: 'PATCH', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' }, body: JSON.stringify(body) });
+    } else {
+      await fetch(`${CFG.url}/rest/v1/settings`, { method: 'POST', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' }, body: JSON.stringify(body) });
+    }
+    await fetch(`${CFG.url}/rest/v1/items`, { method: 'DELETE', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' } });
+    const itemRows = buildItemRows(DB);
+    if (itemRows.length) {
+      await fetch(`${CFG.url}/rest/v1/items`, { method: 'POST', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' }, body: JSON.stringify(itemRows) });
+    }
+    console.log('Push OK, items:', itemRows.length);
+  } catch (e) { console.warn('Push error:', e.message); }
 }
 
 // ========== SCAN & DOCUMENTS ==========
