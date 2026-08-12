@@ -2,5 +2,8 @@
   "name": "papaapp",
   "version": "4.0.0",
   "type": "module",
-  "private": true
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
 }
