@@ -60,6 +60,23 @@ export function renderPastSundays() {
     <div style="font-size:11px;color:var(--text-light);text-align:center;">Total: ${past.length} dimanche${past.length > 1 ? 's' : ''} · Annulés: ${totalCancelled > 0 ? totalCancelled : 0} (${cancelledSundays} dim. + ${cancelledExtra} autres)</div></div>`;
 }
 
+export function custodyType(dateStr, autoSundaySet, overrides, extraVisits) {
+  let type = 'papa';
+  if (autoSundaySet.has(dateStr)) type = 'maman';
+  for (const v of extraVisits) {
+    if (v.date === dateStr) type = v.cancelled ? 'cancelled' : 'extra';
+  }
+  for (const o of overrides) {
+    if (o.date !== dateStr) continue;
+    if (o.cancelled) type = 'cancelled';
+    else if (o.who === 'Papa') type = 'papa';
+    else if (o.who === 'Maman') type = 'maman';
+    else if (o.who === 'Papy/Mamie') type = 'papy';
+    else type = 'other';
+  }
+  return type;
+}
+
 export function renderMonthCalendar() {
   const now = new Date(); now.setHours(0, 0, 0, 0);
   const displayDate = new Date(now.getFullYear(), now.getMonth() + S.calMonth, 1);
@@ -70,53 +87,23 @@ export function renderMonthCalendar() {
   const daysInMonth = lastDay.getDate();
   const today = dateISO(new Date());
 
-  // Build custody map: determine who has Ayden on each day
-  const custodyMap = {};
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month, d);
-    const ds = dateISO(date);
-    custodyMap[ds] = 'papa'; // default: Papa
-  }
-
-  // Mark automatic Sundays
-  const sundayDates = getNextSundays().map(s => dateISO(s));
-  // Also generate ALL sundays for this month (past and future)
+  // Set of automatic Sundays (Maman) for this month
+  const autoSundaySet = new Set();
   const fd = DB.settings.firstSundayDate;
   if (fd) {
     const ref = new Date(fd);
     const iv = DB.settings.sundayInterval || 14;
-    // Go backwards to find sundays in this month too
-    let d = new Date(ref);
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0);
+    let d = new Date(ref);
     while (d <= monthEnd) {
-      const ds = dateISO(d);
-      if (d >= monthStart && d.getDay() === 0) {
-        const ov = (DB.sundayOverrides || []).find(o => o.date === ds) || {};
-        if (ov.cancelled) custodyMap[ds] = 'cancelled';
-        else custodyMap[ds] = 'maman';
-      }
+      if (d >= monthStart && d.getDay() === 0) autoSundaySet.add(dateISO(d));
       d.setDate(d.getDate() + iv);
     }
   }
 
-  // Mark extra visits
-  (DB.extraVisits || []).forEach(v => {
-    if (v.date && v.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
-      if (v.cancelled) custodyMap[v.date] = 'cancelled';
-      else custodyMap[v.date] = 'extra';
-    }
-  });
-
-  // Apply manual overrides from sundayOverrides
-  (DB.sundayOverrides || []).forEach(o => {
-    if (o.date && o.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
-      if (o.cancelled) custodyMap[o.date] = 'cancelled';
-      else if (o.who === 'Maman') custodyMap[o.date] = 'maman';
-      else if (o.who === 'Papy/Mamie') custodyMap[o.date] = 'papy';
-      else custodyMap[o.date] = 'other';
-    }
-  });
+  const overrides = DB.sundayOverrides || [];
+  const extraVisits = DB.extraVisits || [];
 
   const headers = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
   let html = '<div class="cal-month">' + headers.map(h => `<div class="cal-month-header">${h}</div>`).join('');
@@ -126,7 +113,7 @@ export function renderMonthCalendar() {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const type = custodyMap[ds] || 'papa';
+    const type = custodyType(ds, autoSundaySet, overrides, extraVisits);
     const isToday = ds === today;
     const cls = `cal-day cal-day-${type}${isToday ? ' cal-day-today' : ''}`;
     html += `<div class="${cls}" onclick="showCustodyModal('${ds}','${type}')">${d}<div style="font-size:7px;margin-top:-2px;">${type === 'maman' ? 'Ma' : type === 'extra' ? '+' : type === 'cancelled' ? '✕' : type === 'papy' ? 'PM' : type === 'other' ? '?' : ''}</div></div>`;
@@ -155,10 +142,10 @@ export function showCustodyModal(dateStr, currentType) {
   const isSet = currentType !== 'papa';
 
   showModal(fmtLong(dateStr), [
-    { id: 'who', l: 'Ayden est chez...', t: 'sel', opts: ['Maman', 'Papy/Mamie', 'Tata/Tonton', 'Autre'] },
+    { id: 'who', l: 'Ayden est chez...', t: 'sel', opts: ['Papa', 'Maman', 'Papy/Mamie', 'Tata/Tonton', 'Autre'] },
     { id: 'cancelled', l: 'Annulé ?', t: 'sel', opts: ['Non', 'Oui'] },
     { id: 'note', l: 'Note', p: '' },
-    { id: 'reset', t: 'btn', x: '<button type="button" class="btn btn-outline btn-sm btn-full" onclick="event.preventDefault();DB.sundayOverrides=(DB.sundayOverrides||[]).filter(o=>o.date!==' + "'" + dateStr + "'" + ');saveDB();cloudPushSettings();navigate(' + "'agenda'" + ');closeM();toast(' + "'Remis par défaut'" + ')" style="margin-top:8px;">↩ Remettre par défaut (Papa)</button>' }
+    { id: 'reset', t: 'btn', x: '<button type="button" class="btn btn-outline btn-sm btn-full" onclick="event.preventDefault();resetCustody(' + "'" + dateStr + "'" + ')" style="margin-top:8px;">↩ Remettre par défaut (Papa)</button>' }
   ], function(d) {
     var isCanc = d.cancelled === 'Oui';
     var who = d.who || 'Maman';
@@ -177,4 +164,12 @@ export function showCustodyModal(dateStr, currentType) {
     if (elC) elC.value = isCancelled ? 'Oui' : 'Non';
     if (elN) elN.value = savedNote;
   }, 150);
+}
+
+export function resetCustody(dateStr) {
+  DB.sundayOverrides = (DB.sundayOverrides || []).filter(o => o.date !== dateStr);
+  DB.sundayOverrides.push({ date: dateStr, who: 'Papa', note: '', cancelled: false });
+  saveDB(); cloudPushSettings();
+  closeM();
+  setTimeout(function() { navigate('agenda'); toast('Papa garde'); }, 50);
 }

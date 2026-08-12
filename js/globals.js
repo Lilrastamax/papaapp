@@ -3,7 +3,7 @@ import { cloudPushSettings } from './api.js';
 import { render, viewDocument } from './render.js';
 import { navigate } from './nav.js';
 import { showSettings, showSchoolEditModal, showExtraVisitModal, showSundayOverrideModal, closeM } from './modal.js';
-import { showCustodyModal } from './screens/agenda.js';
+import { showCustodyModal, resetCustody } from './screens/agenda.js';
 import { addApptForDate } from './screens/home.js';
 import { doRecurringTask } from './screens/misc.js';
 import { toast } from './ui.js';
@@ -21,6 +21,7 @@ export function exposeGlobals() {
   window.showSchoolEditModal = showSchoolEditModal;
   window.showExtraVisitModal = showExtraVisitModal;
   window.showCustodyModal = showCustodyModal;
+  window.resetCustody = resetCustody;
   window.showSundayOverrideModal = showSundayOverrideModal;
   window.addApptForDate = addApptForDate;
   window.viewDocument = viewDocument;
