@@ -31,7 +31,10 @@ export async function refreshAccessToken() {
       body: JSON.stringify({ refresh_token: S.refresh })
     });
     const json = await res.json();
-    if (!res.ok || !json.access_token) return false;
+    if (!res.ok || !json.access_token) {
+      console.warn('Refresh échoué:', res.status, json.error || json.msg || json.message || '');
+      return false;
+    }
     S.token = json.access_token;
     if (json.refresh_token) S.refresh = json.refresh_token;
     localStorage.setItem('papaapp_token', S.token);
@@ -44,7 +47,8 @@ function clearSession() {
   S.token = null; S.refresh = null;
   localStorage.removeItem('papaapp_token');
   localStorage.removeItem('papaapp_refresh');
-  toast('Session expirée — reconnecte-toi pour la synchro');
+  toast('Session expirée — reconnecte-toi');
+  setTimeout(() => location.reload(), 1500);
 }
 
 export function getUserId() {
