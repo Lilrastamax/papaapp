@@ -1,7 +1,7 @@
 import { DB } from '../store.js';
 import { fmtLong, activiteIcon } from '../utils.js';
 
-// ----- MAISON -----
+// ----- ACTIVITÉS -----
 export function formatActiviteMeta(a) { if (a.recurring) return `🔄 Chaque ${a.day || '?'} · ${a.time || ''}${a.lieu ? ' · ' + a.lieu : ''}${a.coach ? ' · ' + a.coach : ''}${a.notes ? ' · ' + a.notes : ''}`; return `📅 ${a.date ? fmtLong(a.date) : ''} · ${a.time || ''}${a.lieu ? ' · ' + a.lieu : ''}${a.coach ? ' · ' + a.coach : ''}${a.notes ? ' · ' + a.notes : ''}`; }
 
 export function renderActivites() {

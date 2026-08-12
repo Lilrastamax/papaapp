@@ -1,7 +1,7 @@
 // ========== UI : VERROU, AUTH, THÈME, NOTIFICATIONS, TOAST ==========
 import { CFG } from './config.js';
 import { DB, S, saveDB } from './store.js';
-import { $, $$, todayISO, dateISO, fmtLong, childAge, sha256, daysUntil } from './utils.js';
+import { $, $$, dateISO, fmtLong, childAge, sha256, daysUntil } from './utils.js';
 import { cloudAuth, cloudSync } from './api.js';
 import { getUpcomingSunday } from './sundays.js';
 import { render } from './render.js';

@@ -1,11 +1,10 @@
 import { DB, S, saveDB, delFrom } from './store.js';
 import { cloudPushSettings } from './api.js';
-import { render } from './render.js';
+import { render, viewDocument } from './render.js';
 import { navigate } from './nav.js';
 import { showSettings, showSchoolEditModal, showExtraVisitModal, showSundayOverrideModal, closeM } from './modal.js';
 import { showCustodyModal } from './screens/agenda.js';
 import { addApptForDate } from './screens/home.js';
-import { viewDocument } from './render.js';
 import { doRecurringTask } from './screens/misc.js';
 import { toast } from './ui.js';
 import { exportData } from './main.js';

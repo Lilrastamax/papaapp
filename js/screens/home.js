@@ -1,5 +1,5 @@
 import { DB, S } from '../store.js';
-import { fmt, fmtLong, fmtShort, fmtToday, todayISO, dateISO, daysUntil, childAge } from '../utils.js';
+import { fmtLong, fmtShort, fmtToday, todayISO, dateISO, daysUntil, childAge } from '../utils.js';
 import { getNextSundays, getUpcomingSunday } from '../sundays.js';
 import { showApptModal } from '../modal.js';
 
