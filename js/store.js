@@ -6,6 +6,7 @@ import { toast } from './ui.js';
 
 export let S = { token: null, refresh: null, screen: 'home', weekOffset: 0, fabOpen: false, calMonth: 0 };
 export let DB = null;
+export function setDB(value) { DB = value; }
 
 export function defaultDB() {
   return {
