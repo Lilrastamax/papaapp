@@ -134,14 +134,12 @@ export async function cloudPushSettings() {
       first_sunday_note: DB.settings.firstSundayNote,
       checklists: DB.checklists, school: DB.school
     };
-    let r = await fetch(`${CFG.url}/rest/v1/settings`, {
-      method: 'POST',
-      headers: { ...sbHeaders(), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify(body)
-    });
+    // settings : supprimer puis réinsérer (idempotent)
+    await fetch(`${CFG.url}/rest/v1/settings?user_id=eq.${uid}`, { method: 'DELETE', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' } });
+    let r = await fetch(`${CFG.url}/rest/v1/settings`, { method: 'POST', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' }, body: JSON.stringify(body) });
     if (r.status === 401) {
       if (await refreshAccessToken()) {
-        r = await fetch(`${CFG.url}/rest/v1/settings`, { method: 'POST', headers: { ...sbHeaders(), 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(body) });
+        r = await fetch(`${CFG.url}/rest/v1/settings`, { method: 'POST', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' }, body: JSON.stringify(body) });
       } else { clearSession(); return; }
     }
     if (!r.ok) { console.warn('Push settings échoué:', r.status, await r.text()); return; }
