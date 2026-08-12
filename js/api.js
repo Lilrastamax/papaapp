@@ -47,6 +47,15 @@ function clearSession() {
   toast('Session expirée — reconnecte-toi pour la synchro');
 }
 
+export function getUserId() {
+  if (!S.token) return null;
+  try {
+    const payload = S.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = JSON.parse(atob(payload));
+    return json.sub || null;
+  } catch (e) { return null; }
+}
+
 // ========== MAPPING LOCAL <-> CLOUD ==========
 export const ITEM_TYPES = [
   'documents', 'vaccines', 'appointments', 'growth', 'expenses', 'memories', 'contacts',
@@ -113,8 +122,11 @@ export async function cloudSync() {
 
 export async function cloudPushSettings() {
   if (!cloudReady()) { console.warn('Push skipped: not ready'); return; }
+  const uid = getUserId();
+  if (!uid) { console.warn('Push annulé: utilisateur introuvable'); return; }
   try {
     const body = {
+      user_id: uid,
       name: DB.settings.name, child_name: DB.settings.childName,
       child_birth_date: DB.settings.childBirthDate,
       first_sunday_date: DB.settings.firstSundayDate || null,
@@ -122,20 +134,20 @@ export async function cloudPushSettings() {
       first_sunday_note: DB.settings.firstSundayNote,
       checklists: DB.checklists, school: DB.school
     };
-    let r = await fetch(`${CFG.url}/rest/v1/settings?select=id&limit=1`, { headers: sbHeaders() });
+    let r = await fetch(`${CFG.url}/rest/v1/settings`, {
+      method: 'POST',
+      headers: { ...sbHeaders(), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(body)
+    });
     if (r.status === 401) {
-      if (await refreshAccessToken()) r = await fetch(`${CFG.url}/rest/v1/settings?select=id&limit=1`, { headers: sbHeaders() });
-      else { clearSession(); return; }
+      if (await refreshAccessToken()) {
+        r = await fetch(`${CFG.url}/rest/v1/settings`, { method: 'POST', headers: { ...sbHeaders(), 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(body) });
+      } else { clearSession(); return; }
     }
-    if (!r.ok) { console.warn('Push annulé (settings), statut', r.status); return; }
-    const rows = await r.json();
-    if (Array.isArray(rows) && rows[0]) {
-      await fetch(`${CFG.url}/rest/v1/settings?id=eq.${rows[0].id}`, { method: 'PATCH', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' }, body: JSON.stringify(body) });
-    } else {
-      await fetch(`${CFG.url}/rest/v1/settings`, { method: 'POST', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' }, body: JSON.stringify(body) });
-    }
-    await fetch(`${CFG.url}/rest/v1/items`, { method: 'DELETE', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' } });
-    const itemRows = buildItemRows(DB);
+    if (!r.ok) { console.warn('Push settings échoué:', r.status, await r.text()); return; }
+    // items : remplacement complet, scindé par utilisateur
+    await fetch(`${CFG.url}/rest/v1/items?user_id=eq.${uid}`, { method: 'DELETE', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' } });
+    const itemRows = buildItemRows(DB).map(x => ({ ...x, user_id: uid }));
     if (itemRows.length) {
       await fetch(`${CFG.url}/rest/v1/items`, { method: 'POST', headers: { ...sbHeaders(), 'Prefer': 'return=minimal' }, body: JSON.stringify(itemRows) });
     }
