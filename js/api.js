@@ -23,11 +23,40 @@ export async function cloudAuth(email, password, mode) {
   return { ok: true };
 }
 
+export async function refreshAccessToken() {
+  if (!S.refresh) return false;
+  try {
+    const res = await fetch(`${CFG.url}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST', headers: { apikey: CFG.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: S.refresh })
+    });
+    const json = await res.json();
+    if (!res.ok || !json.access_token) return false;
+    S.token = json.access_token;
+    if (json.refresh_token) S.refresh = json.refresh_token;
+    localStorage.setItem('papaapp_token', S.token);
+    localStorage.setItem('papaapp_refresh', S.refresh);
+    return true;
+  } catch (e) { return false; }
+}
+
 export async function cloudSync() {
   if (!cloudReady()) return;
   try {
     // Fetch settings (which contains all data)
-    const s = await fetch(`${CFG.url}/rest/v1/settings?select=*&limit=1`, { headers: sbHeaders() });
+    let s = await fetch(`${CFG.url}/rest/v1/settings?select=*&limit=1`, { headers: sbHeaders() });
+    if (s.status === 401) {
+      if (await refreshAccessToken()) {
+        s = await fetch(`${CFG.url}/rest/v1/settings?select=*&limit=1`, { headers: sbHeaders() });
+      } else {
+        S.token = null; S.refresh = null;
+        localStorage.removeItem('papaapp_token');
+        localStorage.removeItem('papaapp_refresh');
+        toast('Session expirée — reconnecte-toi pour la synchro');
+        return;
+      }
+    }
+    if (!s.ok) { console.warn('Sync annulée, statut', s.status); return; }
     const sd = await s.json();
     if (Array.isArray(sd) && sd[0]) {
       mergeCloudSettings(sd[0]);
