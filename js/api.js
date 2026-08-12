@@ -1,6 +1,6 @@
 // ========== SUPABASE API ==========
 import { CFG } from './config.js';
-import { DB, S } from './store.js';
+import { DB, S, saveDB } from './store.js';
 import { uid } from './utils.js';
 import { showDocModal } from './modal.js';
 import { toast } from './ui.js';
