@@ -6,6 +6,7 @@
 -- ============================================================
 
 DROP TABLE IF EXISTS settings CASCADE;
+DROP TABLE IF EXISTS items CASCADE;
 DROP TABLE IF EXISTS documents CASCADE;
 DROP TABLE IF EXISTS vaccines CASCADE;
 DROP TABLE IF EXISTS appointments CASCADE;
