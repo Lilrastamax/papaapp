@@ -89,18 +89,20 @@ export function editApptModal(listKey, id) {
   const appt = list.find(a => a._id === id);
   if (!appt) return;
   showModal('Modifier le RDV', [
-    { id: 'date', l: 'Date', t: 'date' },
+    { id: 'date', l: 'Date début', t: 'date' },
+    { id: 'endDate', l: 'Date fin (si plage)', t: 'date' },
     { id: 'time', l: 'Heure', p: '14h30' },
     { id: 'type', l: 'Type', p: 'Pédiatre, Dentiste...' },
     { id: 'doctor', l: 'Docteur / Lieu', p: '' },
     { id: 'notes', l: 'Notes', p: '' },
     { id: 'del', t: 'btn', x: '<button type="button" class="btn btn-outline btn-sm btn-full" onclick="event.preventDefault();deleteAppt(' + "'" + listKey + "','" + id + "'" + ')" style="margin-top:8px;">🗑️ Supprimer ce RDV</button>' }
   ], d => {
-    appt.date = d.date; appt.time = d.time || ''; appt.type = d.type || appt.type; appt.doctor = d.doctor || ''; appt.notes = d.notes || '';
+    appt.date = d.date; appt.endDate = d.endDate || ''; appt.time = d.time || ''; appt.type = d.type || appt.type; appt.doctor = d.doctor || ''; appt.notes = d.notes || '';
     saveDB(); cloudPushSettings(); render(); toast('RDV modifié');
   });
   setTimeout(() => {
     $('#fm-date').value = appt.date || '';
+    $('#fm-endDate').value = appt.endDate || '';
     $('#fm-time').value = appt.time || '';
     $('#fm-type').value = appt.type || '';
     $('#fm-doctor').value = appt.doctor || '';
