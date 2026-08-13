@@ -56,7 +56,7 @@ export function showGrowthModal() { showModal('Nouvelle mesure', [{ id: 'date', 
 
 export function showContactModal() { showModal('Nouveau contact', [{ id: 'name', l: 'Nom', p: '' }, { id: 'specialty', l: 'Spécialité', t: 'sel', opts: ['', 'Pédiatre', 'Dentiste', 'Ophtalmo', 'ORL', 'Généraliste', 'Hôpital', 'Infirmier', 'Kiné', 'Orthophoniste', 'Crèche', 'Famille', 'Autre'] }, { id: 'role', l: 'Rôle / Notes', p: '' }, { id: 'phone', l: 'Téléphone', t: 'tel', p: '' }, { id: 'notes', l: 'Adresse / Infos', p: '' }], d => { DB.contacts.push({ _id: uid(), name: d.name, specialty: d.specialty || '', role: d.role || (d.specialty || ''), phone: d.phone, notes: d.notes }); saveDB(); cloudPushSettings(); render(); toast('Contact ajouté'); }); }
 
-export function showSchoolDateModal() { showModal('Nouvelle date scolaire', [{ id: 'label', l: 'Événement', p: 'Rentrée, Vacances...' }, { id: 'date', l: 'Date', t: 'date' }], d => { if (!DB.schoolDates) DB.schoolDates = []; DB.schoolDates.push({ date: d.date, label: d.label }); saveDB(); cloudPushSettings(); render(); toast('Date ajoutée'); }); }
+export function showSchoolDateModal() { showModal('Nouvelle date scolaire', [{ id: 'label', l: 'Événement', p: 'Rentrée, Vacances...' }, { id: 'date', l: 'Date', t: 'date' }], d => { if (!DB.schoolDates) DB.schoolDates = []; DB.schoolDates.push({ _id: uid(), date: d.date, label: d.label }); saveDB(); cloudPushSettings(); render(); toast('Date ajoutée'); }); }
 
 export function showMedicationModal() { const lw = DB.growth.length ? DB.growth[DB.growth.length - 1].weight : null; showModal('Nouveau médicament', [{ id: 'name', l: 'Nom', p: 'Doliprane...' }, { id: 'perKg', l: 'Dose par kg', t: 'number', p: lw ? 'ex: 15 (mg/kg)' : '' }, { id: 'unit', l: 'Unité', p: 'ml, mg...' }, { id: 'freq', l: 'Fréquence', p: '3x/jour' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.medications) DB.medications = []; DB.medications.push({ _id: uid(), name: d.name, perKg: parseFloat(d.perKg) || 0, unit: d.unit || 'ml', freq: d.freq || '', notes: d.notes || '' }); saveDB(); cloudPushSettings(); render(); toast('Médicament ajouté'); }); }
 
@@ -123,6 +123,7 @@ const LABELS = { name: 'Nom', label: 'Nom', type: 'Type', doctor: 'Docteur / Lie
 
 export function editItem(listKey, id) {
   if (listKey === 'appointments' || listKey === 'papaAppointments') { editApptModal(listKey, id); return; }
+  if (listKey === 'documents') { editDoc(id); return; }
   const list = DB[listKey] || [];
   const item = list.find(x => x._id === id);
   if (!item) return;
@@ -156,6 +157,64 @@ export function editItem(listKey, id) {
     }
   }, 100);
 }
+function delBtn(listKey, id) {
+  return '<button type="button" class="btn btn-outline btn-sm btn-full" onclick="event.preventDefault();delFrom(DB.' + listKey + ",'" + id + "'" + ');closeM();" style="margin-top:8px;">🗑️ Supprimer</button>';
+}
+
+export function editDoc(id) {
+  const d = (DB.documents || []).find(x => x._id === id);
+  if (!d) return;
+  showModal('Modifier le document', [
+    { id: 'name', l: 'Nom', p: '' },
+    { id: 'category', l: 'Catégorie', p: '' },
+    { id: 'notes', l: 'Notes', p: '' },
+    { id: 'del', t: 'btn', x: delBtn('documents', id) }
+  ], data => {
+    d.name = data.name || d.name; d.category = data.category || d.category; d.notes = data.notes || '';
+    saveDB(); cloudPushSettings(); render(); toast('Document modifié');
+  });
+  setTimeout(() => { $('#fm-name').value = d.name || ''; $('#fm-category').value = d.category || ''; $('#fm-notes').value = d.notes || ''; }, 100);
+}
+
+export function renameListItem(listKey, subKey, id) {
+  const list = listKey === 'checklists' ? DB.checklists[subKey] : DB[listKey];
+  const item = (list || []).find(x => x.id === id);
+  if (!item) return;
+  const v = prompt('Nouveau nom', item.label || '');
+  if (v === null || !v.trim()) return;
+  item.label = v.trim();
+  saveDB(); cloudPushSettings(); render();
+}
+
+export function removeListItem(listKey, subKey, id) {
+  const list = listKey === 'checklists' ? DB.checklists[subKey] : DB[listKey];
+  const i = (list || []).findIndex(x => x.id === id);
+  if (i < 0) return;
+  list.splice(i, 1);
+  saveDB(); cloudPushSettings(); render();
+}
+
+export function addListItem(listKey, subKey, inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const label = input.value.trim();
+  if (!label) return;
+  const list = listKey === 'checklists' ? DB.checklists[subKey] : DB[listKey];
+  if (!list) return;
+  list.push({ id: uid(), label, checked: false });
+  input.value = '';
+  saveDB(); cloudPushSettings(); render();
+}
+
+export function renameShopItem(i) {
+  const it = DB.shoppingList && DB.shoppingList[i];
+  if (!it) return;
+  const v = prompt('Nouveau nom', it.label || '');
+  if (v === null || !v.trim()) return;
+  it.label = v.trim();
+  saveDB(); cloudPushSettings(); render();
+}
+
 export function showToothModal() { showModal('Nouvelle dent', [{ id: 'name', l: 'Dent', p: 'Incisive, molaire...' }, { id: 'date', l: 'Date', t: 'date' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.teeth) DB.teeth = []; DB.teeth.push({ _id: uid(), name: d.name, date: d.date || todayISO(), notes: d.notes || '' }); saveDB(); cloudPushSettings(); render(); toast('Dent notée'); }); }
 export function showClothingModal() { showModal('Nouveau vêtement', [{ id: 'date', l: 'Date', t: 'date' }, { id: 'category', l: 'Catégorie', p: 'Hauts, Pantalons...' }, { id: 'size', l: 'Taille', p: '3 ans, 98cm...' }, { id: 'item', l: 'Article', p: '' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.clothingHistory) DB.clothingHistory = []; DB.clothingHistory.push({ _id: uid(), date: d.date || todayISO(), category: d.category || 'Autre', size: d.size || '', item: d.item || '', notes: d.notes || '', outgrown: false }); saveDB(); cloudPushSettings(); render(); toast('Taille notée'); }); }
 export function showRecurringTaskModal() { showModal('Tâche récurrente', [{ id: 'label', l: 'Nom', p: 'Couper les ongles...' }, { id: 'intervalDays', l: 'Fréquence (jours)', t: 'number', p: '7 = chaque semaine' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.recurringTasks) DB.recurringTasks = []; const intv = parseInt(d.intervalDays) || 7; const nd = new Date(); nd.setDate(nd.getDate() + intv); DB.recurringTasks.push({ _id: uid(), label: d.label || 'Tâche', intervalDays: intv, freq: intv === 7 ? 'Hebdo' : intv + 'j', lastDone: null, nextDue: todayISO(), notes: d.notes || '' }); saveDB(); cloudPushSettings(); render(); toast('Tâche ajoutée'); }); }

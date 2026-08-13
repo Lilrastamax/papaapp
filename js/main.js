@@ -1,5 +1,5 @@
 import { DB, S, loadDB, setDB, saveDB, defaultDB, resetDailyChecklists } from './store.js';
-import { todayISO } from './utils.js';
+import { todayISO, uid } from './utils.js';
 import { cloudSync, cloudPushSettings } from './api.js';
 import { render } from './render.js';
 import { initNav } from './nav.js';
@@ -47,6 +47,7 @@ export async function init() {
   DB.school = { ...def.school, ...(DB.school || {}) };
   const arrDefaults = ['schoolItems', 'schoolDates', 'medications', 'shoppingList', 'sundayNotes', 'sundayOverrides', 'papaAppointments', 'papaNotes', 'teeth', 'clothingHistory', 'recurringTasks', 'factures', 'vehicule', 'revenus', 'abonnements', 'contrats', 'activites', 'extraVisits'];
   arrDefaults.forEach(k => { if (!DB[k]) DB[k] = []; if (Array.isArray(def[k]) && DB[k].length === 0) DB[k] = def[k]; });
+  (DB.schoolDates || []).forEach(x => { if (!x._id) x._id = uid(); });
   saveDB();
   S.token = localStorage.getItem('papaapp_token') || null;
   S.refresh = localStorage.getItem('papaapp_refresh') || null;
