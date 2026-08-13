@@ -34,8 +34,8 @@ export function renderHome() {
     ${renderWeekCalendar()}
     <div class="stats-row" style="grid-column:1/-1;">
       <div class="stat-card"><div class="icon">💉</div><div class="val">${nv ? nv.name.split(' ')[0] : 'OK'}</div><div class="lbl">Vaccin</div></div>
-      <div class="stat-card"><div class="icon">🏥</div><div class="val">${DB.appointments.filter(a => daysUntil(a.date) >= 0).length}</div><div class="lbl">RDV Ayden</div></div>
-      <div class="stat-card"><div class="icon">👨</div><div class="val">${(DB.papaAppointments || []).filter(a => daysUntil(a.date) >= 0).length}</div><div class="lbl">RDV Papa</div></div>
+      <div class="stat-card" style="cursor:pointer;" onclick="showApptListModal('appointments')"><div class="icon">🏥</div><div class="val">${DB.appointments.filter(a => daysUntil(a.date) >= 0).length}</div><div class="lbl">RDV Ayden</div></div>
+      <div class="stat-card" style="cursor:pointer;" onclick="showApptListModal('papaAppointments')"><div class="icon">👨</div><div class="val">${(DB.papaAppointments || []).filter(a => daysUntil(a.date) >= 0).length}</div><div class="lbl">RDV Papa</div></div>
     </div>
     ${ns ? `<div class="alert alert-info" style="grid-column:1/-1;">📅 Prochain dimanche Maman : <b>${fmtLong(ns)}</b> (${daysUntil(ns)}j)</div>` : (s.firstSundayDate ? `<div class="alert alert-info" style="grid-column:1/-1;">📅 Aucun dimanche prochainement</div>` : `<div class="alert alert-warn" style="grid-column:1/-1;cursor:pointer" onclick="showSettings()">⚠️ Configure les dimanches dans ⚙️</div>`)}
     <div class="card"><div class="card-title">🔔 Rappels</div><div style="font-size:13px;color:var(--text);line-height:2.2;">${reminders.join('<br>')}</div></div>

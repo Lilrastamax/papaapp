@@ -1,5 +1,5 @@
 import { DB, S, saveDB } from './store.js';
-import { $, uid, todayISO, fmtLong, dateISO, sha256 } from './utils.js';
+import { $, uid, todayISO, fmtLong, dateISO, sha256, daysUntil, apptIcon } from './utils.js';
 import { cloudPushSettings } from './api.js';
 import { getUpcomingSunday } from './sundays.js';
 import { render } from './render.js';
@@ -65,6 +65,57 @@ export function showSundayNoteModal() { const ns = getUpcomingSunday(); const de
 export function showSundayOverrideModal(dateStr) { const existing = (DB.sundayOverrides || []).find(o => o.date === dateStr) || { date: dateStr, time: '', note: '', cancelled: false }; showModal('Modifier le dimanche ' + fmtLong(dateStr), [{ id: 'time', l: 'Horaires', p: DB.settings.firstSundayNote || '9h-18h' }, { id: 'cancelled', l: 'Annulé ?', t: 'sel', opts: ['Non', 'Oui'] }, { id: 'note', l: 'Raison (si annulé)', p: 'Maman malade, empêchement...' }], d => { if (!DB.sundayOverrides) DB.sundayOverrides = []; const idx = DB.sundayOverrides.findIndex(o => o.date === dateStr); const obj = { date: dateStr, time: d.time || '', note: d.note || '', cancelled: d.cancelled === 'Oui' }; if (idx >= 0) DB.sundayOverrides[idx] = obj; else DB.sundayOverrides.push(obj); saveDB(); cloudPushSettings(); render(); toast('Dimanche mis à jour'); }); setTimeout(() => { $('#fm-time').value = existing.time || DB.settings.firstSundayNote || ''; $('#fm-cancelled').value = existing.cancelled ? 'Oui' : 'Non'; $('#fm-note').value = existing.note || ''; const cs = $('#fm-cancelled'); const ng = $('#fm-note').closest('.form-group'); if (cs) { cs.onchange = () => { if (ng) ng.style.display = cs.value === 'Oui' ? '' : 'none'; }; if (ng) ng.style.display = cs.value === 'Oui' ? '' : 'none'; } }, 150); }
 
 export function showPapaApptModal() { showModal('RDV Papa', [{ id: 'date', l: 'Date', t: 'date' }, { id: 'type', l: 'Type', p: 'Médecin, Dentiste...' }, { id: 'doctor', l: 'Docteur / Lieu', p: '' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.papaAppointments) DB.papaAppointments = []; DB.papaAppointments.push({ _id: uid(), type: d.type || 'RDV', doctor: d.doctor || '', date: d.date, notes: d.notes || '' }); saveDB(); cloudPushSettings(); render(); toast('RDV Papa'); }); }
+
+export function showApptListModal(listKey) {
+  const list = listKey === 'papaAppointments' ? (DB.papaAppointments || []) : DB.appointments;
+  const title = listKey === 'papaAppointments' ? '👨 RDV Papa' : '🩺 RDV Ayden';
+  const sorted = list.filter(a => a.date).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  let h = '<div class="modal-overlay" id="apptListOverlay"><div class="modal"><h3>' + title + '</h3><div style="max-height:60vh;overflow-y:auto;">';
+  if (sorted.length) {
+    h += sorted.map(a => '<div class="doc-item" onclick="editApptModal(' + "'" + listKey + "','" + a._id + "'" + ')" style="cursor:pointer;"><div class="doc-icon">' + apptIcon(a.type) + '</div><div class="doc-info"><div class="name">' + a.type + (a.time ? ' · ' + a.time : '') + '</div><div class="meta">' + fmtLong(a.date) + (a.doctor ? ' · ' + a.doctor : '') + '</div></div><span style="font-size:11px;color:var(--primary);">✏️</span></div>').join('');
+  } else {
+    h += '<div class="empty"><div class="sub">Aucun RDV</div></div>';
+  }
+  h += '</div><button class="btn btn-outline btn-full" id="apptListClose" style="margin-top:8px;">Fermer</button></div></div>';
+  const ex = $('#apptListOverlay'); if (ex) ex.remove();
+  $('#app').insertAdjacentHTML('beforeend', h);
+  $('#apptListClose').onclick = () => { const m = $('#apptListOverlay'); if (m) m.remove(); };
+  $('#apptListOverlay').onclick = e => { if (e.target === $('#apptListOverlay')) { const m = $('#apptListOverlay'); if (m) m.remove(); } };
+}
+
+export function editApptModal(listKey, id) {
+  const ex = $('#apptListOverlay'); if (ex) ex.remove();
+  const list = listKey === 'papaAppointments' ? (DB.papaAppointments || []) : DB.appointments;
+  const appt = list.find(a => a._id === id);
+  if (!appt) return;
+  showModal('Modifier le RDV', [
+    { id: 'date', l: 'Date', t: 'date' },
+    { id: 'time', l: 'Heure', p: '14h30' },
+    { id: 'type', l: 'Type', p: 'Pédiatre, Dentiste...' },
+    { id: 'doctor', l: 'Docteur / Lieu', p: '' },
+    { id: 'notes', l: 'Notes', p: '' },
+    { id: 'del', t: 'btn', x: '<button type="button" class="btn btn-outline btn-sm btn-full" onclick="event.preventDefault();deleteAppt(' + "'" + listKey + "','" + id + "'" + ')" style="margin-top:8px;">🗑️ Supprimer ce RDV</button>' }
+  ], d => {
+    appt.date = d.date; appt.time = d.time || ''; appt.type = d.type || appt.type; appt.doctor = d.doctor || ''; appt.notes = d.notes || '';
+    saveDB(); cloudPushSettings(); render(); toast('RDV modifié');
+  });
+  setTimeout(() => {
+    $('#fm-date').value = appt.date || '';
+    $('#fm-time').value = appt.time || '';
+    $('#fm-type').value = appt.type || '';
+    $('#fm-doctor').value = appt.doctor || '';
+    $('#fm-notes').value = appt.notes || '';
+  }, 100);
+}
+
+export function deleteAppt(listKey, id) {
+  const list = listKey === 'papaAppointments' ? (DB.papaAppointments || []) : DB.appointments;
+  const i = list.findIndex(a => a._id === id);
+  if (i >= 0) list.splice(i, 1);
+  saveDB(); cloudPushSettings(); render();
+  closeM();
+  toast('🗑️ RDV supprimé');
+}
 export function showToothModal() { showModal('Nouvelle dent', [{ id: 'name', l: 'Dent', p: 'Incisive, molaire...' }, { id: 'date', l: 'Date', t: 'date' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.teeth) DB.teeth = []; DB.teeth.push({ _id: uid(), name: d.name, date: d.date || todayISO(), notes: d.notes || '' }); saveDB(); cloudPushSettings(); render(); toast('Dent notée'); }); }
 export function showClothingModal() { showModal('Nouveau vêtement', [{ id: 'date', l: 'Date', t: 'date' }, { id: 'category', l: 'Catégorie', p: 'Hauts, Pantalons...' }, { id: 'size', l: 'Taille', p: '3 ans, 98cm...' }, { id: 'item', l: 'Article', p: '' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.clothingHistory) DB.clothingHistory = []; DB.clothingHistory.push({ _id: uid(), date: d.date || todayISO(), category: d.category || 'Autre', size: d.size || '', item: d.item || '', notes: d.notes || '', outgrown: false }); saveDB(); cloudPushSettings(); render(); toast('Taille notée'); }); }
 export function showRecurringTaskModal() { showModal('Tâche récurrente', [{ id: 'label', l: 'Nom', p: 'Couper les ongles...' }, { id: 'intervalDays', l: 'Fréquence (jours)', t: 'number', p: '7 = chaque semaine' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.recurringTasks) DB.recurringTasks = []; const intv = parseInt(d.intervalDays) || 7; const nd = new Date(); nd.setDate(nd.getDate() + intv); DB.recurringTasks.push({ _id: uid(), label: d.label || 'Tâche', intervalDays: intv, freq: intv === 7 ? 'Hebdo' : intv + 'j', lastDone: null, nextDue: todayISO(), notes: d.notes || '' }); saveDB(); cloudPushSettings(); render(); toast('Tâche ajoutée'); }); }

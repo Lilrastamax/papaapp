@@ -2,7 +2,7 @@ import { DB, S, saveDB, delFrom } from './store.js';
 import { cloudPushSettings } from './api.js';
 import { render, viewDocument } from './render.js';
 import { navigate } from './nav.js';
-import { showSettings, showSchoolEditModal, showExtraVisitModal, showSundayOverrideModal, closeM } from './modal.js';
+import { showSettings, showSchoolEditModal, showExtraVisitModal, showSundayOverrideModal, closeM, showApptListModal, editApptModal, deleteAppt } from './modal.js';
 import { showCustodyModal, resetCustody } from './screens/agenda.js';
 import { addApptForDate } from './screens/home.js';
 import { doRecurringTask } from './screens/misc.js';
@@ -29,4 +29,7 @@ export function exposeGlobals() {
   window.exportData = exportData;
   window.closeM = closeM;
   window.toast = toast;
+  window.showApptListModal = showApptListModal;
+  window.editApptModal = editApptModal;
+  window.deleteAppt = deleteAppt;
 }
