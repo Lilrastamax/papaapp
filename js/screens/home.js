@@ -65,8 +65,9 @@ export function renderWeekCalendar() {
     const ds = dateISO(d);
     const isToday = d.getTime() === today.getTime();
     const labels = [];
-    DB.appointments.filter(a => a.date === ds).slice(0, 2).forEach(a => labels.push({ t: (a.time ? a.time + ' ' : '') + a.type, c: '#3A4AB5', bg: '#D0D4F5' }));
-    (DB.papaAppointments || []).filter(a => a.date === ds).slice(0, 2).forEach(a => labels.push({ t: (a.time ? a.time + ' ' : '') + a.type, c: '#B06520', bg: '#FDE8D0' }));
+    const inRange = a => a.date && a.date <= ds && ds <= (a.endDate || a.date);
+    DB.appointments.filter(inRange).slice(0, 2).forEach(a => labels.push({ t: (a.time ? a.time + ' ' : '') + a.type, c: '#3A4AB5', bg: '#D0D4F5' }));
+    (DB.papaAppointments || []).filter(inRange).slice(0, 2).forEach(a => labels.push({ t: (a.time ? a.time + ' ' : '') + a.type, c: '#B06520', bg: '#FDE8D0' }));
     getNextSundays().filter(s => dateISO(s) === ds && d.getDay() === 0).forEach(() => labels.push({ t: 'Maman', c: '#A05060', bg: '#FDE0E5' }));
     (DB.extraVisits || []).filter(v => v.date === ds).forEach(v => labels.push({ t: 'Maman', c: '#A05060', bg: '#FDE0E5' }));
     (DB.schoolDates || []).filter(sd => sd.date === ds).forEach(sd => labels.push({ t: sd.label.slice(0, 8), c: '#408050', bg: '#D8F0E0' }));
