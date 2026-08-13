@@ -118,6 +118,44 @@ export function deleteAppt(listKey, id) {
   closeM();
   toast('🗑️ RDV supprimé');
 }
+
+const LABELS = { name: 'Nom', label: 'Nom', type: 'Type', doctor: 'Docteur / Lieu', date: 'Date', time: 'Heure', notes: 'Notes', note: 'Note', category: 'Catégorie', amount: 'Montant (€)', ageMonths: 'Âge (mois)', dateDone: 'Date (si fait)', weight: 'Poids (kg)', height: 'Taille (cm)', phone: 'Téléphone', role: 'Rôle', specialty: 'Spécialité', perKg: 'Dose par kg', unit: 'Unité', freq: 'Fréquence', size: 'Taille', item: 'Article', intervalDays: 'Fréquence (jours)', recurring: 'Récurrent', day: 'Jour', lieu: 'Lieu', coach: 'Contact', montant: 'Montant', echeance: 'Échéance', nextDue: 'Échéance', dueDate: 'Échéance', text: 'Texte', mood: 'Émoji', endDate: 'Date fin', outgrown: 'Trop petit', paid: 'Payé', lastDone: 'Dernière fois', freq: 'Fréquence' };
+
+export function editItem(listKey, id) {
+  if (listKey === 'appointments' || listKey === 'papaAppointments') { editApptModal(listKey, id); return; }
+  const list = DB[listKey] || [];
+  const item = list.find(x => x._id === id);
+  if (!item) return;
+  const fields = [];
+  for (const k of Object.keys(item)) {
+    if (k === '_id') continue;
+    const v = item[k];
+    if (typeof v === 'boolean') fields.push({ id: k, l: LABELS[k] || k, t: 'sel', opts: ['Non', 'Oui'] });
+    else if (typeof v === 'number') fields.push({ id: k, l: LABELS[k] || k, t: 'number' });
+    else if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) fields.push({ id: k, l: LABELS[k] || k, t: 'date' });
+    else fields.push({ id: k, l: LABELS[k] || k, p: '' });
+  }
+  fields.push({ id: 'del', t: 'btn', x: '<button type="button" class="btn btn-outline btn-sm btn-full" onclick="event.preventDefault();delFrom(DB.' + listKey + ",'" + id + "'" + ');closeM();" style="margin-top:8px;">🗑️ Supprimer</button>' });
+  showModal('Modifier', fields, d => {
+    for (const k of Object.keys(item)) {
+      if (k === '_id') continue;
+      const v = item[k];
+      if (typeof v === 'boolean') item[k] = d[k] === 'Oui';
+      else if (typeof v === 'number') item[k] = parseFloat(d[k]) || 0;
+      else item[k] = d[k] || '';
+    }
+    saveDB(); cloudPushSettings(); render(); toast('Modifié');
+  });
+  setTimeout(() => {
+    for (const k of Object.keys(item)) {
+      if (k === '_id') continue;
+      const el = $('#fm-' + k); if (!el) continue;
+      const v = item[k];
+      if (typeof v === 'boolean') el.value = v ? 'Oui' : 'Non';
+      else el.value = v ?? '';
+    }
+  }, 100);
+}
 export function showToothModal() { showModal('Nouvelle dent', [{ id: 'name', l: 'Dent', p: 'Incisive, molaire...' }, { id: 'date', l: 'Date', t: 'date' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.teeth) DB.teeth = []; DB.teeth.push({ _id: uid(), name: d.name, date: d.date || todayISO(), notes: d.notes || '' }); saveDB(); cloudPushSettings(); render(); toast('Dent notée'); }); }
 export function showClothingModal() { showModal('Nouveau vêtement', [{ id: 'date', l: 'Date', t: 'date' }, { id: 'category', l: 'Catégorie', p: 'Hauts, Pantalons...' }, { id: 'size', l: 'Taille', p: '3 ans, 98cm...' }, { id: 'item', l: 'Article', p: '' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.clothingHistory) DB.clothingHistory = []; DB.clothingHistory.push({ _id: uid(), date: d.date || todayISO(), category: d.category || 'Autre', size: d.size || '', item: d.item || '', notes: d.notes || '', outgrown: false }); saveDB(); cloudPushSettings(); render(); toast('Taille notée'); }); }
 export function showRecurringTaskModal() { showModal('Tâche récurrente', [{ id: 'label', l: 'Nom', p: 'Couper les ongles...' }, { id: 'intervalDays', l: 'Fréquence (jours)', t: 'number', p: '7 = chaque semaine' }, { id: 'notes', l: 'Notes', p: '' }], d => { if (!DB.recurringTasks) DB.recurringTasks = []; const intv = parseInt(d.intervalDays) || 7; const nd = new Date(); nd.setDate(nd.getDate() + intv); DB.recurringTasks.push({ _id: uid(), label: d.label || 'Tâche', intervalDays: intv, freq: intv === 7 ? 'Hebdo' : intv + 'j', lastDone: null, nextDue: todayISO(), notes: d.notes || '' }); saveDB(); cloudPushSettings(); render(); toast('Tâche ajoutée'); }); }
